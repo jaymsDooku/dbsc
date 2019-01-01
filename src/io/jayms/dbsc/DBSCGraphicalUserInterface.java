@@ -1,5 +1,13 @@
 package io.jayms.dbsc;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import io.jayms.dbsc.model.ConnectionConfig;
+import io.jayms.dbsc.model.DB;
+import io.jayms.dbsc.model.Report;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -18,7 +26,10 @@ import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+<<<<<<< HEAD
 import javafx.scene.layout.StackPane;
+=======
+>>>>>>> 6aeb97788c00005faa8957e8a01876df39a8506c
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -28,8 +39,30 @@ import javafx.stage.Stage;
 
 public class DBSCGraphicalUserInterface extends Application {
 
+	public static final boolean DEBUG = true;
+	
 	public static void main(String[] args) {
-		launch(args);
+		File dbFile = new File("localDBs2.sqlite");
+		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
+		DatabaseManager dm = new DatabaseManager(sqliteDb);
+		List<DB> dbs = new ArrayList<>();
+		dbs.add(new DB("db1", Arrays.asList(new Report("bubbly", "SELECT * FROM TABLE WHERE ID = 1", "SELECT yeet FROM DAB WHERE CLOUT > 666"), new Report("jubbly", "SELET name FROM USERS WHERE surname = \"smith\""))));
+		dbs.add(new DB("db2", Arrays.asList(new Report("fubbly", "SELECT emoji from emoticons WHERE ROWNUM <= 100"))));
+		ConnectionConfig cc = new ConnectionConfig("192.168.1.1", 3000, "root", "password", dbs);
+		dm.store(cc);
+		System.out.println("dd");
+		dm.close();
+		//launch(args);
+		
+		/*File dbFile = new File("localDBs2.sqlite");
+		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
+		DatabaseManager dm = new DatabaseManager(sqliteDb);
+		dm.loadConnectionConfigs();
+		Collection<ConnectionConfig> ccs = dm.connectionConfigs();
+		System.out.println(ccs.size());
+		for (ConnectionConfig cc : ccs) {
+			System.out.println(cc.toString());
+		}*/
 	}
 	
 	private static final double rightTopPaneHeight = 0.05;
@@ -81,6 +114,8 @@ public class DBSCGraphicalUserInterface extends Application {
 	
 	private HBox createBtnCtr;
 	private Button createBtn;
+
+	private DatabaseManager dbMan;
 	
 	private void newConnectionStage() {
 		newConnectionStage = new Stage();
@@ -222,6 +257,10 @@ public class DBSCGraphicalUserInterface extends Application {
 	
 	@Override
 	public void start(Stage stage) throws Exception {
+		File dbFile = new File("localDBs2.sqlite");
+		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
+		dbMan = new DatabaseManager(sqliteDb);
+		
 		this.stage = stage;
 		stage.setTitle("DBSC");
 		
