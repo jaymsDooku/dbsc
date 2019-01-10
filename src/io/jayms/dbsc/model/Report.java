@@ -1,30 +1,24 @@
 package io.jayms.dbsc.model;
 
+import lombok.Getter;
+
 public class Report {
 
-	private String worksheetName;
-	private String[] queries;
+	@Getter private String workbookName;
+	@Getter private Query[] queries;
 	
-	public Report(String worksheetName, String... queries) {
-		this.worksheetName = worksheetName;
+	public Report(String workbookName, Query... queries) {
+		this.workbookName = workbookName;
 		this.queries = queries;
-	}
-	
-	public String worksheetName() {
-		return worksheetName;
-	}
-	
-	public String[] queries() {
-		return queries;
 	}
 	
 	@Override
 	public String toString() {
 		String s = "{" + 
-				"WorksheetName = " + worksheetName + "|" +
-				"Reports = [";
+				"WorkbookName = " + workbookName + "|" +
+				"Queries = [";
 		for (int i = 0; i < queries.length; i++) {
-			String query = queries[i];
+			Query query = queries[i];
 			s += query.toString();
 			if (i < queries.length - 1) {
 				s += ", ";

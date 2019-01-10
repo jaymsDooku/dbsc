@@ -2,57 +2,65 @@ package io.jayms.dbsc;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.DB;
+import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
 import javafx.application.Application;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-<<<<<<< HEAD
-import javafx.scene.layout.StackPane;
-=======
->>>>>>> 6aeb97788c00005faa8957e8a01876df39a8506c
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
 
 public class DBSCGraphicalUserInterface extends Application {
 
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 	
 	public static void main(String[] args) {
-		File dbFile = new File("localDBs2.sqlite");
+		/*File dbFile = new File("localDBs.sqlite");
 		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
 		DatabaseManager dm = new DatabaseManager(sqliteDb);
 		List<DB> dbs = new ArrayList<>();
-		dbs.add(new DB("db1", Arrays.asList(new Report("bubbly", "SELECT * FROM TABLE WHERE ID = 1", "SELECT yeet FROM DAB WHERE CLOUT > 666"), new Report("jubbly", "SELET name FROM USERS WHERE surname = \"smith\""))));
-		dbs.add(new DB("db2", Arrays.asList(new Report("fubbly", "SELECT emoji from emoticons WHERE ROWNUM <= 100"))));
+		dbs.add(new DB("db1", Arrays.asList(new Report("bubbly", new Query("smth", "SELECT * FROM TABLE WHERE ID = 1"), new Query("toptext", "SELECT yeet FROM DAB WHERE CLOUT > 666")), new Report("jubbly", new Query("bottomtext", "SELET name FROM USERS WHERE surname = \"smith\"")))));
+		dbs.add(new DB("db2", Arrays.asList(new Report("fubbly", new Query("smh", "SELECT emoji from emoticons WHERE ROWNUM <= 100")))));
 		ConnectionConfig cc = new ConnectionConfig("192.168.1.1", 3000, "root", "password", dbs);
 		dm.store(cc);
 		System.out.println("dd");
-		dm.close();
-		//launch(args);
+		dm.close();*/
+		launch(args);
 		
 		/*File dbFile = new File("localDBs2.sqlite");
 		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
@@ -76,6 +84,7 @@ public class DBSCGraphicalUserInterface extends Application {
 	private VBox leftPane;
 	private Button newConnectionsBtn;
 	private TreeView<String> connections;
+	private TreeItem<String> connectionsRoot;
 	
 	private SplitPane rightPane;
 	private HBox topPane;
@@ -99,10 +108,6 @@ public class DBSCGraphicalUserInterface extends Application {
 	private HBox portCtr;
 	private Label portLbl;
 	private TextField portTxt;
-	
-	private HBox dbnameCtr;
-	private Label dbnameLbl;
-	private TextField dbnameTxt;
 	
 	private HBox userCtr;
 	private Label userLbl;
@@ -142,8 +147,6 @@ public class DBSCGraphicalUserInterface extends Application {
 		hostnameCtr.setAlignment(Pos.CENTER_RIGHT);
 		portCtr = new HBox();
 		portCtr.setAlignment(Pos.CENTER_RIGHT);
-		dbnameCtr = new HBox();
-		dbnameCtr.setAlignment(Pos.CENTER_RIGHT);
 		userCtr = new HBox();
 		userCtr.setAlignment(Pos.CENTER_RIGHT);
 		passCtr = new HBox();
@@ -153,7 +156,6 @@ public class DBSCGraphicalUserInterface extends Application {
 		
 		hostnameLbl = new Label("Hostname: ");
 		portLbl = new Label("Port: ");
-		dbnameLbl = new Label("DB Name: ");
 		userLbl = new Label("User: ");
 		passLbl = new Label("Pass: ");
 	
@@ -161,31 +163,99 @@ public class DBSCGraphicalUserInterface extends Application {
 		hostnameTxt.setPromptText("Enter hostname");
 		portTxt = new TextField();
 		portTxt.setPromptText("Enter port");
-		dbnameTxt = new TextField();
-		dbnameTxt.setPromptText("Enter DB name");
+		EventHandler<KeyEvent> portTxtType = (KeyEvent e) -> {
+			try {
+				Integer.parseInt(e.getCharacter());
+			} catch (NumberFormatException ex) {
+				e.consume();
+			}
+		};
+		portTxt.addEventHandler(KeyEvent.KEY_TYPED, portTxtType);
+		
 		userTxt = new TextField();
 		userTxt.setPromptText("Enter user");
 		passTxt = new TextField();
 		passTxt.setPromptText("Enter pass");
 		
 		createBtn = new Button("Create");
+		EventHandler<MouseEvent> createBtnPress = (MouseEvent e) -> {
+			ConnectionConfig cc = new ConnectionConfig(hostnameTxt.getText(),
+					Integer.parseInt(portTxt.getText()),
+					userTxt.getText(),
+					passTxt.getText(),
+					new ArrayList<>());
+			dbMan.store(cc);
+			System.out.println("Creating new connection config: " + cc);
+			
+			newConnectionTreeItem(cc);
+		};
+		createBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, createBtnPress);
 		createBtnCtr.getChildren().add(createBtn);
 		
 		hostnameCtr.getChildren().addAll(hostnameLbl, hostnameTxt);
 		portCtr.getChildren().addAll(portLbl, portTxt);
-		dbnameCtr.getChildren().addAll(dbnameLbl, dbnameTxt);
 		userCtr.getChildren().addAll(userLbl, userTxt);
 		passCtr.getChildren().addAll(passLbl, passTxt);
 		
 		newConnectionRoot.getChildren().addAll(newConnTitleCtr,
 				hostnameCtr,
 				portCtr,
-				dbnameCtr,
 				userCtr,
 				passCtr,
 				createBtnCtr);
 		
 		newConnectionStage.setScene(newConnectionScene);
+	}
+	
+	private Map<String, Query> queries = new HashMap<>();
+	private Map<String, Long> doubleClick = new HashMap<>();
+	private ContextMenu connectionCM;
+	
+	private void clickedTreeItem(MouseEvent e) {
+		Node node = e.getPickResult().getIntersectedNode();
+	    // Accept clicks only on node cells, and not on empty spaces of the TreeView
+	    if (node instanceof Text || (node instanceof TreeCell && ((TreeCell) node).getText() != null)) {
+	        String name = (String) ((TreeItem)connections.getSelectionModel().getSelectedItem()).getValue();
+	        System.out.println("Node click: " + name);
+	        if (e.getButton() == MouseButton.SECONDARY) {
+	        	System.out.println("Right click");
+	        	ConnectionConfig cc = dbMan.getConnectionConfig(name);
+	        	if (cc != null) {
+	        		System.out.println("CC exists");
+	        		if (connectionCM == null) {
+	        			connectionCM = new ContextMenu();
+	        			MenuItem newDB = new MenuItem("New DB");
+	        			connectionCM.getItems().addAll(newDB);
+	        		}
+	        		connectionCM.show(node, Side.RIGHT, 0, 0);
+	        	}
+	        	return;
+	        } 
+	        if (queries.containsKey(name))  {
+		        if (doubleClick.containsKey(name)) {
+		        	System.out.println("Double clicking...");
+		        	long lastClick = doubleClick.get(name);
+		        	long timePassed = System.currentTimeMillis() - lastClick;
+		        	System.out.println("Time passed: " + timePassed);
+		        	if (timePassed < 500) {
+		        		Query query = queries.get(name);
+		    	        if (query != null) {
+		    	        	if (!isQueryTabOpen(name)) {
+		    	        		queriesTab.getTabs().add(queryTab(name, query.getQuery()));
+		    	        	}
+		    	        }
+		    	        doubleClick.remove(name);
+		        	} else {
+		        		doubleClick.remove(name);
+		        		doubleClick.put(name, System.currentTimeMillis());
+		        	}
+		        } else {
+		        	System.out.println("Single click");
+		        	doubleClick.put(name, System.currentTimeMillis());
+		        	return;
+		        }
+	        }
+	    }
 	}
 	
 	private void leftPane() {
@@ -201,15 +271,39 @@ public class DBSCGraphicalUserInterface extends Application {
 			newConnectionStage.show();
 		});
 		
-		TreeItem<String> rootItem = new TreeItem<>("Connections");
-		TreeItem<String> connItem = new TreeItem<>("127.0.0.1");
-		TreeItem<String> reportItem = new TreeItem<>("Finance Report");
-		connItem.getChildren().add(reportItem);
-		rootItem.getChildren().add(connItem);
-		connections = new TreeView<>(rootItem);
+		connectionsRoot = new TreeItem<>("Connections");
+		connections = new TreeView<>(connectionsRoot);
 		connections.setMaxHeight(Double.MAX_VALUE);
+		EventHandler<MouseEvent> clickedQueryItem = (MouseEvent e) -> {
+			clickedTreeItem(e);
+		};
+		connections.addEventHandler(MouseEvent.MOUSE_CLICKED, clickedQueryItem);
+		
+		Collection<ConnectionConfig> conConfigs = dbMan.getConnectionConfigs();
+		for (ConnectionConfig cc : conConfigs) {
+			newConnectionTreeItem(cc);
+		}
 		
 		leftPane.getChildren().addAll(newConnectionsBtn, connections);
+	}
+	
+	private void newConnectionTreeItem(ConnectionConfig cc) {
+		TreeItem<String> connItem = new TreeItem<>(cc.getHost());
+		for (DB db : cc.getDbs()) {
+			TreeItem<String> dbItem = new TreeItem<>(db.getDatabaseName());
+			for (Report report : db.getReports()) {
+				TreeItem<String> reportItem = new TreeItem<>(report.getWorkbookName());
+				for (Query query : report.getQueries()) {
+					String wsName = query.getWorksheetName();
+					TreeItem<String> queryItem = new TreeItem<>(query.getWorksheetName());
+					queries.put(wsName, query);
+					reportItem.getChildren().add(queryItem);
+				}
+				dbItem.getChildren().add(reportItem);
+			}
+			connItem.getChildren().add(dbItem);
+		}
+		connectionsRoot.getChildren().add(connItem);
 	}
 	
 	private void rightPane() {
@@ -232,34 +326,43 @@ public class DBSCGraphicalUserInterface extends Application {
 		topPane.getChildren().addAll(pathDisplay, ssFileChooseBtn);
 		
 		queriesTab = new TabPane();
-		Tab queryTab = queryTab("Finance Query");
-		queriesTab.getTabs().add(queryTab);
 		
 		rightPane.setDividerPosition(0, rightTopPaneHeight);
 		rightPane.setOrientation(Orientation.VERTICAL);
 		rightPane.getItems().addAll(topPane, queriesTab);
 	}
 	
-	private Tab queryTab(String text) {
+	private Tab queryTab(String wsName, String query) {
 		Tab queryTab = new Tab();
-		queryTab.setText("Finance Query");
+		queryTab.setText(wsName);
 		
 		TextField queryTextBox = new TextField();
 		queryTextBox.setMaxWidth(Double.MAX_VALUE);
 		queryTextBox.setMaxHeight(Double.MAX_VALUE);
 		queryTextBox.setAlignment(Pos.TOP_LEFT);
 		System.out.println(Font.getFontNames());
+		queryTextBox.setText(query);
 		queryTextBox.setFont(Font.loadFont(EDITOR_FONT, 14));
 		queryTextBox.selectPositionCaret(0);
 		queryTab.setContent(queryTextBox);
 		return queryTab;
 	}
 	
+	private boolean isQueryTabOpen(String wsName) {
+		for (Tab tab : queriesTab.getTabs()) {
+			if (tab.getText().equalsIgnoreCase(wsName)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	@Override
 	public void start(Stage stage) throws Exception {
-		File dbFile = new File("localDBs2.sqlite");
+		File dbFile = new File("localDBs.sqlite");
 		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
 		dbMan = new DatabaseManager(sqliteDb);
+		dbMan.loadConnectionConfigs();
 		
 		this.stage = stage;
 		stage.setTitle("DBSC");
@@ -281,6 +384,14 @@ public class DBSCGraphicalUserInterface extends Application {
 		stage.setScene(scene);
 		
 		stage.show();
+	}
+	
+	@Override
+	public void stop() throws Exception {
+		if (newConnectionStage != null) {
+			newConnectionStage.close();
+		}
+		dbMan.close();
 	}
 	
 	private void onWidthResize(Number oldVal, Number newVal) {

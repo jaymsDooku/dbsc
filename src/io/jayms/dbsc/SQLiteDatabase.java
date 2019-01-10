@@ -20,7 +20,9 @@ public class SQLiteDatabase extends AbstractDatabase {
 					System.out.println("Created new SQLite Database: " + dbFile.getName());
 				}
 			}
+			
 			Class.forName("org.sqlite.JDBC");
+			
 			connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
 		} catch (IOException | ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
