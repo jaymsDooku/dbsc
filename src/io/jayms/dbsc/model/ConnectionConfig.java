@@ -2,13 +2,16 @@ package io.jayms.dbsc.model;
 
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class ConnectionConfig {
 
-	private String host;
-	private int port;
-	private String user;
-	private String pass;
-	private List<DB> dbs;
+	@Getter @Setter private String host;
+	@Getter @Setter private int port;
+	@Getter @Setter private String user;
+	@Getter @Setter private String pass;
+	@Getter @Setter private List<DB> dbs;
 	
 	public ConnectionConfig(String host, int port, String user, String pass, List<DB> dbs) {
 		this.host = host;
@@ -18,53 +21,13 @@ public class ConnectionConfig {
 		this.dbs = dbs;
 	}
 	
-	public String host() {
-		return host;
-	}
-	
-	public void host(String host) {
-		this.host = host;
-	}
-	
-	public int port() {
-		return port;
-	}
-	
-	public void port(int port) {
-		this.port = port;
-	}
-	
-	public String user() {
-		return user;
-	}
-	
-	public void user(String user) {
-		this.user = user;
-	}
-	
-	public String pass() {
-		return pass;
-	}
-	
-	public void pass(String pass) {
-		this.pass = pass;
-	}
-	
-	public List<DB> dbs() {
-		return dbs;
-	}
-	
-	public void dbs(List<DB> dbs) {
-		this.dbs = dbs;
-	}
-	
 	@Override
 	public String toString() {
 		String s = "{" +
-				"Hostname = " + host() + "|" +
-				"Port = " + port() + "|" +
-				"User = " + user() + "|" +
-				"Pass = " + pass() + "|" +
+				"Hostname = " + getHost() + "|" +
+				"Port = " + getPort() + "|" +
+				"User = " + getUser() + "|" +
+				"Pass = " + getPass() + "|" +
 				"DBS = [";
 		for (int i = 0; i < dbs.size(); i++) {
 			DB db = dbs.get(i);

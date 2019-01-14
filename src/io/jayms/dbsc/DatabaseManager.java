@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -174,15 +175,15 @@ public class DatabaseManager {
 		Connection conn = db.connection();
 		try {
 			PreparedStatement ps = conn.prepareStatement(INSERT_CONNECTION, Statement.RETURN_GENERATED_KEYS);
-			ps.setString(1, cc.host());
-			ps.setInt(2, cc.port());
-			ps.setString(3, cc.user());
-			ps.setString(4, cc.pass()); // TODO: Encryption
+			ps.setString(1, cc.getHost());
+			ps.setInt(2, cc.getPort());
+			ps.setString(3, cc.getUser());
+			ps.setString(4, cc.getPass()); // TODO: Encryption
 			int connId = ps.executeUpdate();
 			ps.close();
 			
 			if (connId > 0) {
-				List<DB> dbs = cc.dbs();
+				List<DB> dbs = cc.getDbs();
 				if (!dbs.isEmpty()) {
 					for (DB dbItem : dbs) {
 						int dbId = insertDB(connId, dbItem);
@@ -206,8 +207,10 @@ public class DatabaseManager {
 			PreparedStatement ps = conn.prepareStatement(SELECT_CONNECTIONS);
 			ResultSet rs = ps.executeQuery();
 			
+			System.out.println("Querying database...");
 			if (!rs.next()) return false;
 			
+			System.out.println("Retrieving cc records...");
 			int id = rs.getInt("ConnectionID");
 			String host = rs.getString("Hostname");
 			int port = rs.getInt("Port");
@@ -245,7 +248,21 @@ public class DatabaseManager {
 				dbMap.put(dbName, ImmutableMultimap.<String, String>builder()
 						.put(wsName, query).build());
 			}
+			rs.close();
 			
+			List<DB> dbs = new ArrayList<>();
+			for (String dbName : dbMap.keySet()) {
+				Collection<Multimap<String, String>> reportMap = dbMap.get(dbName);
+				List<Report> reports = new ArrayList<>();
+				for (Multimap<String, String> reportContents : reportMap) {
+					for (String reportName : reportContents.keySet()) {
+						Collection<String> reportQueries = reportContents.get(reportName);
+						String[] queries = reportQueries.toArray(new String[0]);
+						reports.add(new Report(reportName, queries));
+					}
+				}
+				dbs.add(new DB(dbName, reports, new HashSet<>()));
+			}
 			ConnectionConfig cc = new ConnectionConfig(host, port, user, pass, dbs);
 			connCache.put(host, cc);
 			ps.close();

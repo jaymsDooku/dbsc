@@ -2,18 +2,27 @@ package io.jayms.dbsc;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import io.jayms.dbsc.model.Column;
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.DB;
+import io.jayms.dbsc.model.DataType;
 import io.jayms.dbsc.model.Report;
+import io.jayms.dbsc.model.TabEditorData;
+import io.jayms.dbsc.model.Table;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
@@ -21,10 +30,16 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderStroke;
+import javafx.scene.layout.BorderStrokeStyle;
+import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -35,30 +50,31 @@ import javafx.stage.Stage;
 
 public class DBSCGraphicalUserInterface extends Application {
 
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 	
 	public static void main(String[] args) {
-		File dbFile = new File("localDBs2.sqlite");
-		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
-		DatabaseManager dm = new DatabaseManager(sqliteDb);
-		List<DB> dbs = new ArrayList<>();
-		dbs.add(new DB("db1", Arrays.asList(new Report("bubbly", "SELECT * FROM TABLE WHERE ID = 1", "SELECT yeet FROM DAB WHERE CLOUT > 666"), new Report("jubbly", "SELET name FROM USERS WHERE surname = \"smith\""))));
-		dbs.add(new DB("db2", Arrays.asList(new Report("fubbly", "SELECT emoji from emoticons WHERE ROWNUM <= 100"))));
-		ConnectionConfig cc = new ConnectionConfig("192.168.1.1", 3000, "root", "password", dbs);
-		dm.store(cc);
-		System.out.println("dd");
-		dm.close();
-		//launch(args);
+//		File dbFile = new File("localDBs2.sqlite");
+//		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
+//		DatabaseManager dm = new DatabaseManager(sqliteDb);
+//		List<DB> dbs = new ArrayList<>();
+//		dbs.add(new DB("db1", Arrays.asList(new Report("bubbly", "SELECT * FROM TABLE WHERE ID = 1", "SELECT yeet FROM DAB WHERE CLOUT > 666"), new Report("jubbly", "SELET name FROM USERS WHERE surname = \"smith\""))));
+//		dbs.add(new DB("db2", Arrays.asList(new Report("fubbly", "SELECT emoji from emoticons WHERE ROWNUM <= 100"))));
+//		ConnectionConfig cc = new ConnectionConfig("192.168.1.1", 3000, "root", "password", dbs);
+//		dm.store(cc);
+//		System.out.println("dd");
+//		dm.close();
+		launch(args);
 		
-		/*File dbFile = new File("localDBs2.sqlite");
-		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
-		DatabaseManager dm = new DatabaseManager(sqliteDb);
-		dm.loadConnectionConfigs();
-		Collection<ConnectionConfig> ccs = dm.connectionConfigs();
-		System.out.println(ccs.size());
-		for (ConnectionConfig cc : ccs) {
-			System.out.println(cc.toString());
-		}*/
+//		File dbFile = new File("localDBs2.sqlite");
+//		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
+//		DatabaseManager dm = new DatabaseManager(sqliteDb);
+//		dm.loadConnectionConfigs();
+//		Collection<ConnectionConfig> ccs = dm.connectionConfigs();
+//		System.out.println(ccs.size());
+//		for (ConnectionConfig cc : ccs) {
+//			System.out.println(cc.toString());
+//		}
+//		dm.close();
 	}
 	
 	private static final double rightTopPaneHeight = 0.05;
@@ -66,6 +82,13 @@ public class DBSCGraphicalUserInterface extends Application {
 	private static final String EDITOR_FONT = "file:resources/fonts/Courier Prime.ttf";
 	
 	private Stage stage;
+	
+	private VBox rootPane;
+	
+	private HBox actionBar;
+	private Button runQueryBtn;
+	private Button stopQueryBtn;
+	private Button openQueryBuilderBtn;
 	
 	private SplitPane masterPane;
 	
@@ -78,6 +101,7 @@ public class DBSCGraphicalUserInterface extends Application {
 	private TextField pathDisplay;
 	private Button ssFileChooseBtn;
 	private FileChooser ssFileChooser;
+	private File chosenFile;
 	
 	private TabPane queriesTab;
 	
@@ -112,6 +136,74 @@ public class DBSCGraphicalUserInterface extends Application {
 	private Button createBtn;
 	
 	private DatabaseManager dbMan;
+	
+	private Stage queryBuilderStage;
+	private Scene queryBuilderScene;
+	
+	private VBox queryBuilderRootPane;
+	
+	private HBox queryBuilderActionBar;
+	
+	private HBox qbAddTableCtr;
+	private ComboBox<String> qbAddTableCmb;
+	private Button qbAddTableBtn;
+	
+	private Pane queryBuilderPane;
+	
+	private static DB qbTestDB;
+	
+	static {
+		List<Report> testReports = new ArrayList<>();
+		testReports.add(new Report("TestReport", "SELECT DAB FROM THEYEET"));
+		
+		Set<Table> testTables = new HashSet<>();
+		Set<Column> table1Columns = new HashSet<>();
+		table1Columns.add(new Column("name", DataType.TEXT));
+		testTables.add(new Table("table1", table1Columns));
+		
+		qbTestDB = new DB("TestDB", testReports, testTables);
+	}
+	
+	private void newQueryBuilder(DB db) {
+		queryBuilderStage = new Stage();
+		queryBuilderStage.setTitle("Query Builder");
+		
+		queryBuilderRootPane = new VBox();
+		
+		queryBuilderActionBar = new HBox();
+		
+		qbAddTableCtr = new HBox();
+		qbAddTableCmb = new ComboBox<>();
+		qbAddTableBtn = new Button("Add Table");
+		qbAddTableCtr.getChildren().addAll(qbAddTableCmb, qbAddTableBtn);
+	
+		Set<Table> tables = db.getTables();
+		for (Table table : tables) {
+			qbAddTableCmb.getItems().add(table.getName());
+		}
+		if (!qbAddTableCmb.getItems().isEmpty()) {
+			qbAddTableCmb.getSelectionModel().select(0);
+		}
+		
+		queryBuilderActionBar.getChildren().add(qbAddTableCtr);
+		queryBuilderActionBar.setBorder(new Border(
+				new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+		
+		queryBuilderPane = new Pane();
+		queryBuilderPane.setPrefSize(800, 600);
+		
+		queryBuilderRootPane.getChildren().addAll(queryBuilderPane, queryBuilderActionBar);
+		
+		queryBuilderScene = new Scene(queryBuilderRootPane, 800, 800);
+		queryBuilderStage.setScene(queryBuilderScene);
+	}
+	
+	private void openQueryBuilder() {
+		if (queryBuilderStage == null) {
+			newQueryBuilder(qbTestDB);
+		}
+		queryBuilderStage.show();
+	}
 	
 	private void newConnectionStage() {
 		newConnectionStage = new Stage();
@@ -208,6 +300,14 @@ public class DBSCGraphicalUserInterface extends Application {
 		leftPane.getChildren().addAll(newConnectionsBtn, connections);
 	}
 	
+	private TreeItem<String> connectionTreeItem(ConnectionConfig cc) {
+		TreeItem<String> treeItem = new TreeItem<>(cc.getHost());
+		for (DB db : cc.getDbs()) {
+			
+		}
+		return treeItem;
+	}
+	
 	private void rightPane() {
 		rightPane = new SplitPane();
 		
@@ -251,17 +351,61 @@ public class DBSCGraphicalUserInterface extends Application {
 		return queryTab;
 	}
 	
+	private void runQuery(MouseEvent e) {
+		if (chosenFile == null) {
+			Alert alert = new Alert(AlertType.ERROR, "You need to select a file destination first!", ButtonType.OK);
+			alert.showAndWait();
+			return;
+		}
+		Tab curTab = queriesTab.getSelectionModel().getSelectedItem();
+		if (curTab == null) {
+			System.out.println("No tab open.");
+			return;
+		}
+		String title = curTab.getText();
+		Object tabDataObj = curTab.getUserData();
+		if (tabDataObj == null || !(tabDataObj instanceof TabEditorData)) {
+			System.out.println("No tab editor data held");
+			return;
+		}
+		TabEditorData tabData = (TabEditorData) tabDataObj;
+		
+	}
+	
 	@Override
 	public void start(Stage stage) throws Exception {
 		File dbFile = new File("localDBs2.sqlite");
 		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
 		dbMan = new DatabaseManager(sqliteDb);
+		if (dbMan.loadConnectionConfigs()) {
+			System.out.println("Loaded connection configs.");
+		} else {
+			System.out.println("Did not load any connection configs.");
+		}
 		
 		this.stage = stage;
 		stage.setTitle("DBSC");
 		
+		rootPane = new VBox();
+		rootPane.setBackground(new Background(new BackgroundFill(Color.CORNSILK, CornerRadii.EMPTY, Insets.EMPTY)));
+		
+		actionBar = new HBox();
+		
+		runQueryBtn = new Button("Run Query");
+		runQueryBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent e) -> {
+			runQuery(e);
+		});
+		
+		stopQueryBtn = new Button("Stop Query");
+		openQueryBuilderBtn = new Button("Open Query Builder");
+		openQueryBuilderBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent e) -> {
+			openQueryBuilder();
+		});
+		actionBar.getChildren().addAll(runQueryBtn, stopQueryBtn, openQueryBuilderBtn);
+		
 		masterPane = new SplitPane();
 		masterPane.setBackground(new Background(new BackgroundFill(Color.CORNSILK, CornerRadii.EMPTY, Insets.EMPTY)));
+		masterPane.setOrientation(Orientation.HORIZONTAL);
 		
 		leftPane();
 		rightPane();
@@ -273,7 +417,8 @@ public class DBSCGraphicalUserInterface extends Application {
 			onWidthResize(oldVal, newVal);
 		});
 		
-		Scene scene = new Scene(masterPane, 800, 600);
+		rootPane.getChildren().addAll(actionBar, masterPane);
+		Scene scene = new Scene(rootPane, 800, 600);
 		stage.setScene(scene);
 		
 		stage.show();
