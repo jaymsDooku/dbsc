@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import io.jayms.dbsc.model.ConnectionConfig;
@@ -138,11 +137,19 @@ public class DatabaseManager {
 	
 	private int insertDB(int connId, DB dbItem) throws SQLException {
 		Connection conn = db.connection();
-		PreparedStatement ps = conn.prepareStatement(INSERT_DB, Statement.RETURN_GENERATED_KEYS);
-		ps.setInt(1, connId);
-		ps.setString(2, dbItem.getDatabaseName());
-		ps.setString(3, dbItem.getType().toString());
-		ps.setString(4, dbItem.getSqliteDBFile().getAbsolutePath());
+		PreparedStatement ps;
+		if (dbItem.getType() == DBType.SQLITE) {
+			ps = conn.prepareStatement(INSERT_DB_WITH_FILE, Statement.RETURN_GENERATED_KEYS);
+			ps.setInt(1, connId);
+			ps.setString(2, dbItem.getDatabaseName());
+			ps.setString(3, dbItem.getType().toString());
+			ps.setString(4, dbItem.getSqliteDBFile().getAbsolutePath());
+		} else {
+			ps = conn.prepareStatement(INSERT_DB, Statement.RETURN_GENERATED_KEYS);
+			ps.setInt(1, connId);
+			ps.setString(2, dbItem.getDatabaseName());
+			ps.setString(3, dbItem.getType().toString());
+		}
 		ps.executeUpdate();
 		int id = ps.getGeneratedKeys().getInt(1);
 		ps.close();
@@ -239,13 +246,13 @@ public class DatabaseManager {
 					for (DB dbItem : dbs) {
 						String dbName = dbItem.getDatabaseName();
 						int dbId = existingDBs.containsKey(dbName) ? 
-								insertDB(connId, dbItem) : existingDBs.get(dbName);
+								existingDBs.get(dbName) : insertDB(connId, dbItem);
 								
 						Map<String, Integer> existingReports = fetchSSReports(dbId);
 						for (Report report : dbItem.getReports()) {
 							String wbName = report.getWorkbookName();
 							int reportId = existingReports.containsKey(wbName) ?
-									insertReport(dbId, report) : existingReports.get(wbName);
+									existingReports.get(wbName) : insertReport(dbId, report);
 									
 							for (Query query : report.getQueries()) {
 								if (query.getId() == -1) {
@@ -276,22 +283,21 @@ public class DatabaseManager {
 			int port = rs.getInt("Port");
 			String user = rs.getString("Username");
 			String pass = rs.getString("Password");
-			Multimap<String, DBValue> dbMap = HashMultimap.create();
+			Map<String, DBValue> dbMap = new HashMap<>();
 			while (rs.next()) {
 				int nextId = rs.getInt("ConnectionID");
 				if (id != nextId) {
 					List<DB> dbs = new ArrayList<>();
 					for (String dbName : dbMap.keySet()) {
-						Collection<DBValue> dbValues = dbMap.get(dbName);
+						DBValue dbVal = dbMap.get(dbName);
 						List<Report> reports = new ArrayList<>();
-						for (DBValue dbVal : dbValues) {
-							String dbType = dbVal.getDbType();
-							Multimap<String, Query> queryMap = dbVal.getQueries();
-							for (String wsName : queryMap.keySet()) {
-								Collection<Query> queries = queryMap.get(wsName);
-								reports.add(new Report(wsName, queries.toArray(new Query[0])));
-							}
+						String dbType = dbVal.getDbType();
+						Multimap<String, Query> queryMap = dbVal.getQueries();
+						for (String wsName : queryMap.keySet()) {
+							Collection<Query> queries = queryMap.get(wsName);
+							reports.add(new Report(wsName, queries.toArray(new Query[0])));
 						}
+						dbs.add(new DB(dbName, DBType.valueOf(dbType), reports));
 					}
 					ConnectionConfig cc = new ConnectionConfig(host, port, user, pass, dbs);
 					connCache.put(host, cc);
@@ -309,23 +315,34 @@ public class DatabaseManager {
 				String query = rs.getString("QueryString");
 				int queryId = rs.getInt("QueryID");
 				
-				String dbType = rs.getString("DatabaseType"); 
-				dbMap.put(dbName, new DBValue(dbType, ImmutableMultimap.<String, Query>builder()
-						.put(wbName, new Query(queryId, wsName, query)).build()));
+				String dbType = rs.getString("DatabaseType");
+//				System.out.println("Putting in DBMap");
+//				System.out.println("dbName: " + dbName);
+//				System.out.println("wbName: " + wbName);
+//				System.out.println("wsName: " + wsName);
+//				System.out.println("query: " + query);
+				if (dbMap.containsKey(dbName)) {
+					DBValue dbVal = dbMap.get(dbName);
+					Multimap<String, Query> queries = dbVal.getQueries();
+					queries.put(wbName, new Query(queryId, wsName, query));
+					dbMap.put(dbName, dbVal);
+				} else {
+					Multimap<String, Query> queries = HashMultimap.create();
+					queries.put(wbName, new Query(queryId, wsName, query));
+					dbMap.put(dbName, new DBValue(dbType, queries));
+				}
 			}
 			
 			List<DB> dbs = new ArrayList<>();
 			for (String dbName : dbMap.keySet()) {
-				Collection<DBValue> reports = dbMap.get(dbName);
-				for (DBValue report : reports) {
-					List<Report> reportList = new ArrayList<>();
-					Multimap<String, Query> reportMap = report.getQueries();
-					for (String wsName : reportMap.keySet()) {
-						Collection<Query> reportQueries = reportMap.get(wsName);
-						reportList.add(new Report(wsName, reportQueries.toArray(new Query[0])));
-					}
-					dbs.add(new DB(dbName, DBType.valueOf(report.getDbType()), reportList));
+				DBValue dbVal = dbMap.get(dbName);
+				List<Report> reportList = new ArrayList<>();
+				Multimap<String, Query> reportMap = dbVal.getQueries();
+				for (String wsName : reportMap.keySet()) {
+					Collection<Query> reportQueries = reportMap.get(wsName);
+					reportList.add(new Report(wsName, reportQueries.toArray(new Query[0])));
 				}
+				dbs.add(new DB(dbName, DBType.valueOf(dbVal.getDbType()), reportList));
 			}
 			
 			ConnectionConfig cc = new ConnectionConfig(host, port, user, pass, dbs);

@@ -8,6 +8,7 @@ import java.util.Map;
 
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.DB;
+import io.jayms.dbsc.model.DBType;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
 import javafx.application.Application;
@@ -19,6 +20,7 @@ import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -50,16 +52,16 @@ public class DBSCGraphicalUserInterface extends Application {
 	public static final boolean DEBUG = false;
 	
 	public static void main(String[] args) {
-		/*File dbFile = new File("localDBs.sqlite");
-		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
-		DatabaseManager dm = new DatabaseManager(sqliteDb);
-		List<DB> dbs = new ArrayList<>();
-		dbs.add(new DB("db1", Arrays.asList(new Report("bubbly", new Query("smth", "SELECT * FROM TABLE WHERE ID = 1"), new Query("toptext", "SELECT yeet FROM DAB WHERE CLOUT > 666")), new Report("jubbly", new Query("bottomtext", "SELET name FROM USERS WHERE surname = \"smith\"")))));
-		dbs.add(new DB("db2", Arrays.asList(new Report("fubbly", new Query("smh", "SELECT emoji from emoticons WHERE ROWNUM <= 100")))));
-		ConnectionConfig cc = new ConnectionConfig("192.168.1.1", 3000, "root", "password", dbs);
-		dm.store(cc);
-		System.out.println("dd");
-		dm.close();*/
+//		File dbFile = new File("localDBs.sqlite");
+//		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
+//		DatabaseManager dm = new DatabaseManager(sqliteDb);
+//		List<DB> dbs = new ArrayList<>();
+//		dbs.add(new DB("db1", DBType.SQL_SERVER, Arrays.asList(new Report("bubbly", new Query("smth", "SELECT * FROM TABLE WHERE ID = 1"), new Query("toptext", "SELECT yeet FROM DAB WHERE CLOUT > 666")), new Report("jubbly", new Query("bottomtext", "SELET name FROM USERS WHERE surname = \"smith\"")))));
+//		dbs.add(new DB("db2", DBType.ORACLE, Arrays.asList(new Report("fubbly", new Query("smh", "SELECT emoji from emoticons WHERE ROWNUM <= 100")))));
+//		ConnectionConfig cc = new ConnectionConfig("192.168.1.1", 3000, "root", "password", dbs);
+//		dm.store(cc);
+//		System.out.println("dd");
+//		dm.close();
 		launch(args);
 		
 		/*File dbFile = new File("localDBs2.sqlite");
@@ -121,6 +123,82 @@ public class DBSCGraphicalUserInterface extends Application {
 	private Button createBtn;
 
 	private DatabaseManager dbMan;
+	
+	private Stage newDBStage;
+	private Scene newDBScene;
+	private VBox newDBRoot;
+	
+	private HBox newDBTitleCtr;
+	private Label newDBTitle;
+	
+	private HBox dbNameCtr;
+	private Label dbNameLbl;
+	private TextField dbNameTxt;
+	
+	private HBox dbTypeCtr;
+	private Label dbTypeLbl;
+	private ComboBox<String> dbTypeCmb;
+	
+	private void newDBStage() {
+		newDBStage = new Stage();
+		newDBStage.setTitle("Create New Connection");
+		
+		VBox root = new VBox();
+		HBox rootCtr = new HBox();
+		root.setAlignment(Pos.CENTER);
+		rootCtr.setAlignment(Pos.CENTER);
+		newDBRoot = new VBox();
+		newDBRoot.setSpacing(10);
+		rootCtr.getChildren().add(newDBRoot);
+		root.getChildren().add(rootCtr);
+		newDBScene = new Scene(root, 400, 300);
+		
+		newDBTitleCtr = new HBox();
+		newDBTitleCtr.setAlignment(Pos.CENTER);
+		newDBTitle = new Label("New Database");
+		newDBTitle.setFont(Font.font("Arial", 20));
+		newDBTitle.setAlignment(Pos.CENTER);
+		newDBTitleCtr.getChildren().add(newDBTitle);
+		
+		dbNameCtr = new HBox();
+		dbNameCtr.setAlignment(Pos.CENTER_RIGHT);
+		dbTypeCtr = new HBox();
+		dbTypeCtr.setAlignment(Pos.CENTER_RIGHT);
+		
+		dbNameLbl = new Label("DB Name: ");
+		dbTypeLbl = new Label("DB Type: ");
+	
+		dbNameTxt = new TextField();
+		dbNameTxt.setPromptText("Enter DB name");
+		dbTypeCmb = new ComboBox<>();
+		for (DBType dbType : DBType.values()) {
+			dbTypeCmb.getItems().add(dbType.toString().toLowerCase());
+		}
+		
+		createBtn = new Button("Create");
+		EventHandler<MouseEvent> createBtnPress = (MouseEvent e) -> {
+			DB db = new DB();
+			System.out.println("Creating new database: " + cc);
+			
+			newConnectionTreeItem(cc);
+		};
+		createBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, createBtnPress);
+		createBtnCtr.getChildren().add(createBtn);
+		
+		hostnameCtr.getChildren().addAll(hostnameLbl, hostnameTxt);
+		portCtr.getChildren().addAll(portLbl, portTxt);
+		userCtr.getChildren().addAll(userLbl, userTxt);
+		passCtr.getChildren().addAll(passLbl, passTxt);
+		
+		newDBRoot.getChildren().addAll(newConnTitleCtr,
+				hostnameCtr,
+				portCtr,
+				userCtr,
+				passCtr,
+				createBtnCtr);
+		
+		newDBStage.setScene(newDBScene);
+	}
 	
 	private void newConnectionStage() {
 		newConnectionStage = new Stage();
@@ -211,6 +289,15 @@ public class DBSCGraphicalUserInterface extends Application {
 	private Map<String, Long> doubleClick = new HashMap<>();
 	private ContextMenu connectionCM;
 	
+	private void newConnectionCM() {
+		connectionCM = new ContextMenu();
+		MenuItem newDB = new MenuItem("New DB");
+		newDB.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent e) -> {
+			
+		});
+		connectionCM.getItems().addAll(newDB);
+	}
+	
 	private void clickedTreeItem(MouseEvent e) {
 		Node node = e.getPickResult().getIntersectedNode();
 	    // Accept clicks only on node cells, and not on empty spaces of the TreeView
@@ -223,9 +310,7 @@ public class DBSCGraphicalUserInterface extends Application {
 	        	if (cc != null) {
 	        		System.out.println("CC exists");
 	        		if (connectionCM == null) {
-	        			connectionCM = new ContextMenu();
-	        			MenuItem newDB = new MenuItem("New DB");
-	        			connectionCM.getItems().addAll(newDB);
+	        			newConnectionCM();
 	        		}
 	        		connectionCM.show(node, Side.RIGHT, 0, 0);
 	        	}

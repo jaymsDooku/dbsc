@@ -14,17 +14,15 @@ public class DB {
 	@Getter @Setter private File sqliteDBFile;
 	
 	public DB(String databaseName, DBType type, List<Report> reports) {
-		if (type != DBType.SQLITE) {
-			throw new IllegalArgumentException("SQLite DBs must have their database file!");
-		}
-		this.databaseName = databaseName;
-		this.type = type;
-		this.reports = reports;
+		this(databaseName, type, null, reports);
 	}
 	
 	public DB(String databaseName, DBType type, File sqliteDBFile, List<Report> reports) {
 		this.databaseName = databaseName;
 		this.type = type;
+		if (type == DBType.SQLITE && sqliteDBFile == null) {
+			throw new IllegalArgumentException("SQLite DBs must have their database file!");
+		}
 		this.sqliteDBFile = sqliteDBFile;
 		this.reports = reports;
 	}
