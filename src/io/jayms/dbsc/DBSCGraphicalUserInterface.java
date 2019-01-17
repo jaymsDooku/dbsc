@@ -141,7 +141,7 @@ public class DBSCGraphicalUserInterface extends Application {
 	
 	private void newDBStage() {
 		newDBStage = new Stage();
-		newDBStage.setTitle("Create New Connection");
+		newDBStage.setTitle("Create New Database");
 		
 		VBox root = new VBox();
 		HBox rootCtr = new HBox();
@@ -175,26 +175,25 @@ public class DBSCGraphicalUserInterface extends Application {
 			dbTypeCmb.getItems().add(dbType.toString().toLowerCase());
 		}
 		
+		dbNameCtr.getChildren().addAll(dbNameLbl, dbNameTxt);
+		dbTypeCtr.getChildren().addAll(dbTypeLbl, dbTypeCmb);
+		
 		createBtn = new Button("Create");
 		EventHandler<MouseEvent> createBtnPress = (MouseEvent e) -> {
-			DB db = new DB();
-			System.out.println("Creating new database: " + cc);
+			String databaseName = dbNameTxt.getText();
+			DBType dbType = DBType.valueOf(dbTypeCmb.getSelectionModel().getSelectedItem().toUpperCase());
+			DB db = new DB(databaseName, dbType, new ArrayList<>());
+			System.out.println("Creating new database: " + db);
 			
 			newConnectionTreeItem(cc);
 		};
 		createBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, createBtnPress);
 		createBtnCtr.getChildren().add(createBtn);
 		
-		hostnameCtr.getChildren().addAll(hostnameLbl, hostnameTxt);
-		portCtr.getChildren().addAll(portLbl, portTxt);
-		userCtr.getChildren().addAll(userLbl, userTxt);
-		passCtr.getChildren().addAll(passLbl, passTxt);
-		
-		newDBRoot.getChildren().addAll(newConnTitleCtr,
-				hostnameCtr,
-				portCtr,
-				userCtr,
-				passCtr,
+		newDBRoot.getChildren().addAll(newDBTitleCtr,
+				dbNameCtr,
+				dbTypeCtr,
+				createBtnCtr,
 				createBtnCtr);
 		
 		newDBStage.setScene(newDBScene);
