@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +41,7 @@ public class DatabaseManager {
 			 + "ON CONFLICT IGNORE"
 			 + ")";
 	private static final String INSERT_CONNECTION = "INSERT INTO CONNECTION(Hostname, Port, Username, Password) VALUES (?, ?, ?, ?)";
-	private static final String SELECT_CONNECTIONS = "SELECT * FROM CONNECTION INNER JOIN DBS USING(ConnectionID) LEFT JOIN SSREPORT USING (DBID) LEFT JOIN SSREPORTQUERIES USING(ReportID)LEFT JOIN QUERIES USING (QueryID)";
+	private static final String SELECT_CONNECTIONS = "SELECT * FROM CONNECTION LEFT JOIN DBS USING(ConnectionID) LEFT JOIN SSREPORT USING (DBID) LEFT JOIN SSREPORTQUERIES USING(ReportID)LEFT JOIN QUERIES USING (QueryID)";
 	
 	private static final String DB_TBL = "DBS";
 	private static final String CREATE_DB_TBL = "CREATE TABLE DBS ("
@@ -276,8 +277,10 @@ public class DatabaseManager {
 			PreparedStatement ps = conn.prepareStatement(SELECT_CONNECTIONS);
 			ResultSet rs = ps.executeQuery();
 			
+			System.out.println("Querying database...");
 			if (!rs.next()) return false;
 			
+			System.out.println("Retrieving cc records...");
 			int id = rs.getInt("ConnectionID");
 			String host = rs.getString("Hostname");
 			int port = rs.getInt("Port");
@@ -302,12 +305,18 @@ public class DatabaseManager {
 					ConnectionConfig cc = new ConnectionConfig(host, port, user, pass, dbs);
 					connCache.put(host, cc);
 					id = nextId;
+					dbMap.clear();
 				}
 			
 				host = rs.getString("Hostname");
 				port = rs.getInt("Port");
 				user = rs.getString("Username");
 				pass = rs.getString("Password");
+				
+				if (host == null || port == 0 || user == null || pass == null) {
+					System.out.println("Failed to load connection configuration with ID: " + id);
+					continue;
+				}
 				
 				String dbName = rs.getString("DatabaseName");
 				String wbName = rs.getString("WorkbookName");
@@ -316,21 +325,22 @@ public class DatabaseManager {
 				int queryId = rs.getInt("QueryID");
 				
 				String dbType = rs.getString("DatabaseType");
-//				System.out.println("Putting in DBMap");
-//				System.out.println("dbName: " + dbName);
-//				System.out.println("wbName: " + wbName);
-//				System.out.println("wsName: " + wsName);
-//				System.out.println("query: " + query);
-				if (dbMap.containsKey(dbName)) {
-					DBValue dbVal = dbMap.get(dbName);
-					Multimap<String, Query> queries = dbVal.getQueries();
-					queries.put(wbName, new Query(queryId, wsName, query));
-					dbMap.put(dbName, dbVal);
-				} else {
-					Multimap<String, Query> queries = HashMultimap.create();
-					queries.put(wbName, new Query(queryId, wsName, query));
-					dbMap.put(dbName, new DBValue(dbType, queries));
+				
+				if (dbName == null || wbName == null || wsName == null || query == null || queryId == 0 || dbType == null) {
+					continue;
 				}
+				
+				DBValue dbVal;
+				Multimap<String, Query> queries;
+				if (dbMap.containsKey(dbName)) { // If DBValue already initialized in the map, retrieve and populate local variables.
+					dbVal = dbMap.get(dbName);
+					queries = dbVal.getQueries();
+				} else { // If not, initialize local variables.
+					queries = HashMultimap.create();
+					dbVal = new DBValue(dbType, queries);
+				}
+				queries.put(wbName, new Query(queryId, wsName, query));
+				dbMap.put(dbName, dbVal);
 			}
 			
 			List<DB> dbs = new ArrayList<>();
@@ -344,6 +354,7 @@ public class DatabaseManager {
 				}
 				dbs.add(new DB(dbName, DBType.valueOf(dbVal.getDbType()), reportList));
 			}
+			rs.close();
 			
 			ConnectionConfig cc = new ConnectionConfig(host, port, user, pass, dbs);
 			connCache.put(host, cc);

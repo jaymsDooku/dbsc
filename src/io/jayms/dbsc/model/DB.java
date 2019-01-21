@@ -2,6 +2,7 @@ package io.jayms.dbsc.model;
 
 import java.io.File;
 import java.util.List;
+import java.util.Set;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,6 +13,8 @@ public class DB {
 	@Getter private List<Report> reports;
 	@Getter @Setter private DBType type;
 	@Getter @Setter private File sqliteDBFile;
+	
+	@Getter @Setter private Set<Table> tables = null;
 	
 	public DB(String databaseName, DBType type, List<Report> reports) {
 		this(databaseName, type, null, reports);
@@ -25,6 +28,10 @@ public class DB {
 		}
 		this.sqliteDBFile = sqliteDBFile;
 		this.reports = reports;
+	}
+	
+	public boolean fetchTables() {
+		return false;
 	}
 	
 	@Override
