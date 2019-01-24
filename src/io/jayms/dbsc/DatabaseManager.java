@@ -12,14 +12,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Table;
 
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DBType;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
+import io.jayms.xlsx.db.Database;
+import io.jayms.xlsx.db.SQLServerDatabase;
 import lombok.Getter;
 
 public class DatabaseManager {
@@ -40,7 +44,7 @@ public class DatabaseManager {
 			 + "ON CONFLICT IGNORE"
 			 + ")";
 	private static final String INSERT_CONNECTION = "INSERT INTO CONNECTION(Hostname, Port, Username, Password) VALUES (?, ?, ?, ?)";
-	private static final String SELECT_CONNECTIONS = "SELECT * FROM CONNECTION INNER JOIN DBS USING(ConnectionID) LEFT JOIN SSREPORT USING (DBID) LEFT JOIN SSREPORTQUERIES USING(ReportID)LEFT JOIN QUERIES USING (QueryID)";
+	private static final String SELECT_CONNECTIONS = "SELECT * FROM CONNECTION LEFT JOIN DBS USING(ConnectionID) LEFT JOIN SSREPORT USING (DBID) LEFT JOIN SSREPORTQUERIES USING(ReportID)LEFT JOIN QUERIES USING (QueryID)";
 	
 	private static final String DB_TBL = "DBS";
 	private static final String CREATE_DB_TBL = "CREATE TABLE DBS ("
@@ -48,10 +52,12 @@ public class DatabaseManager {
 			+ "ConnectionID INTEGER NOT NULL, "
 			+ "DatabaseName TEXT NOT NULL, "
 			+ "DatabaseType TEXT NOT NULL, "
-			+ "DBFilePath TEXT DEFAULT NULL"
+			+ "DBFilePath TEXT DEFAULT NULL, "
+			+ "ServerName TEXT DEFAULT NULL"
 			+ ")";
 	private static final String INSERT_DB = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType) VALUES (?, ?, ?)";
 	private static final String INSERT_DB_WITH_FILE = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, DBFilePath) VALUES (?, ?, ?, ?)";
+	private static final String INSERT_DB_WITH_SERVERNAME = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, ServerName) VALUES (?, ?, ?, ?)";
 	private static final String SELECT_DB = "SELECT DBID, DatabaseName FROM DBS WHERE ConnectionID = ?";
 	
 	private static final String SSREPORT_TBL = "SSREPORT";
@@ -84,7 +90,8 @@ public class DatabaseManager {
 	
 	private SQLiteDatabase db;
 	
-	private Map<String, ConnectionConfig> connCache = new HashMap<>();
+	private Map<String, ConnectionConfig> connConfigCache = new HashMap<>();
+	private Table<String, String, Database> connDatabaseCache = HashBasedTable.create();
 	
 	public DatabaseManager(SQLiteDatabase db) {
 		this.db = db;
@@ -93,7 +100,7 @@ public class DatabaseManager {
 	
 	private void ensureTable(String tblName, String createTable) {
 		if (!db.tableExists(tblName)) {
-			Connection conn = db.connection();
+			Connection conn = db.getConnection();
 			try {
 				PreparedStatement ps = conn.prepareStatement(createTable);
 				ps.executeUpdate();
@@ -105,7 +112,7 @@ public class DatabaseManager {
 	}
 	
 	private void dropTable(String tbl) {
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		try {
 			PreparedStatement ps = conn.prepareStatement("DROP TABLE IF EXISTS " + tbl);
 			ps.executeUpdate();
@@ -136,7 +143,7 @@ public class DatabaseManager {
 	}
 	
 	private int insertDB(int connId, DB dbItem) throws SQLException {
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		PreparedStatement ps;
 		if (dbItem.getType() == DBType.SQLITE) {
 			ps = conn.prepareStatement(INSERT_DB_WITH_FILE, Statement.RETURN_GENERATED_KEYS);
@@ -144,6 +151,12 @@ public class DatabaseManager {
 			ps.setString(2, dbItem.getDatabaseName());
 			ps.setString(3, dbItem.getType().toString());
 			ps.setString(4, dbItem.getSqliteDBFile().getAbsolutePath());
+		} else if (dbItem.getType() == DBType.SQL_SERVER) {
+			ps = conn.prepareStatement(INSERT_DB_WITH_SERVERNAME, Statement.RETURN_GENERATED_KEYS);
+			ps.setInt(1, connId);
+			ps.setString(2, dbItem.getDatabaseName());
+			ps.setString(3, dbItem.getType().toString());
+			ps.setString(4, dbItem.getServerName());
 		} else {
 			ps = conn.prepareStatement(INSERT_DB, Statement.RETURN_GENERATED_KEYS);
 			ps.setInt(1, connId);
@@ -157,7 +170,7 @@ public class DatabaseManager {
 	}
 	
 	private int insertReport(int dbId, Report report) throws SQLException {
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(INSERT_SSREPORT, Statement.RETURN_GENERATED_KEYS);
 		ps.setInt(1, dbId);
 		ps.setString(2, report.getWorkbookName());
@@ -168,7 +181,7 @@ public class DatabaseManager {
 	}
 	
 	private int insertQuery(int reportId, Query query) throws SQLException {
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(INSERT_QUERY, Statement.RETURN_GENERATED_KEYS);
 		ps.setString(1, query.getWorksheetName());
 		ps.setString(2, query.getQuery());
@@ -180,7 +193,7 @@ public class DatabaseManager {
 	}
 	
 	private int insertReportQuery(int reportId, int queryId) throws SQLException {
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(INSERT_SSREPORTQUERY, Statement.RETURN_GENERATED_KEYS);
 		ps.setInt(1, reportId);
 		ps.setInt(2, queryId);
@@ -192,7 +205,7 @@ public class DatabaseManager {
 	
 	private Map<String, Integer> fetchDBs(int connectionId) throws SQLException {
 		Map<String, Integer> result = new HashMap<>();
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(SELECT_DB);
 		ps.setInt(1, connectionId);
 		ResultSet rs = ps.executeQuery();
@@ -206,7 +219,7 @@ public class DatabaseManager {
 	
 	private Map<String, Integer> fetchSSReports(int dbId) throws SQLException {
 		Map<String, Integer> result = new HashMap<>();
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(SELECT_SSREPORT);
 		ps.setInt(1, dbId);
 		ResultSet rs = ps.executeQuery();
@@ -219,7 +232,7 @@ public class DatabaseManager {
 	}
 	
 	private void updateQuery(int reportId, Query query) throws SQLException {
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(UPDATE_QUERY);
 		ps.setString(1, query.getWorksheetName());
 		ps.setString(2, query.getQuery());
@@ -229,7 +242,7 @@ public class DatabaseManager {
 	}
 	
 	public void store(ConnectionConfig cc) {
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		try {
 			PreparedStatement ps = conn.prepareStatement(INSERT_CONNECTION, Statement.RETURN_GENERATED_KEYS);
 			ps.setString(1, cc.getHost());
@@ -271,13 +284,15 @@ public class DatabaseManager {
 	}
 	
 	public boolean loadConnectionConfigs() {
-		Connection conn = db.connection();
+		Connection conn = db.getConnection();
 		try {
 			PreparedStatement ps = conn.prepareStatement(SELECT_CONNECTIONS);
 			ResultSet rs = ps.executeQuery();
 			
+			System.out.println("Querying database...");
 			if (!rs.next()) return false;
 			
+			System.out.println("Retrieving cc records...");
 			int id = rs.getInt("ConnectionID");
 			String host = rs.getString("Hostname");
 			int port = rs.getInt("Port");
@@ -287,27 +302,21 @@ public class DatabaseManager {
 			while (rs.next()) {
 				int nextId = rs.getInt("ConnectionID");
 				if (id != nextId) {
-					List<DB> dbs = new ArrayList<>();
-					for (String dbName : dbMap.keySet()) {
-						DBValue dbVal = dbMap.get(dbName);
-						List<Report> reports = new ArrayList<>();
-						String dbType = dbVal.getDbType();
-						Multimap<String, Query> queryMap = dbVal.getQueries();
-						for (String wsName : queryMap.keySet()) {
-							Collection<Query> queries = queryMap.get(wsName);
-							reports.add(new Report(wsName, queries.toArray(new Query[0])));
-						}
-						dbs.add(new DB(dbName, DBType.valueOf(dbType), reports));
-					}
-					ConnectionConfig cc = new ConnectionConfig(host, port, user, pass, dbs);
-					connCache.put(host, cc);
+					ConnectionConfig cc = constructConnectionConfig(host, port, user, pass, dbMap);
+					connConfigCache.put(host, cc);
 					id = nextId;
+					dbMap.clear();
 				}
 			
 				host = rs.getString("Hostname");
 				port = rs.getInt("Port");
 				user = rs.getString("Username");
 				pass = rs.getString("Password");
+				
+				if (host == null || port == 0 || user == null || pass == null) {
+					System.out.println("Failed to load connection configuration with ID: " + id);
+					continue;
+				}
 				
 				String dbName = rs.getString("DatabaseName");
 				String wbName = rs.getString("WorkbookName");
@@ -316,37 +325,27 @@ public class DatabaseManager {
 				int queryId = rs.getInt("QueryID");
 				
 				String dbType = rs.getString("DatabaseType");
-//				System.out.println("Putting in DBMap");
-//				System.out.println("dbName: " + dbName);
-//				System.out.println("wbName: " + wbName);
-//				System.out.println("wsName: " + wsName);
-//				System.out.println("query: " + query);
-				if (dbMap.containsKey(dbName)) {
-					DBValue dbVal = dbMap.get(dbName);
-					Multimap<String, Query> queries = dbVal.getQueries();
-					queries.put(wbName, new Query(queryId, wsName, query));
-					dbMap.put(dbName, dbVal);
-				} else {
-					Multimap<String, Query> queries = HashMultimap.create();
-					queries.put(wbName, new Query(queryId, wsName, query));
-					dbMap.put(dbName, new DBValue(dbType, queries));
+				
+				if (dbName == null || wbName == null || wsName == null || query == null || queryId == 0 || dbType == null) {
+					continue;
 				}
+				
+				DBValue dbVal;
+				Multimap<String, Query> queries;
+				if (dbMap.containsKey(dbName)) { // If DBValue already initialized in the map, retrieve and populate local variables.
+					dbVal = dbMap.get(dbName);
+					queries = dbVal.getQueries();
+				} else { // If not, initialize local variables.
+					queries = HashMultimap.create();
+					dbVal = new DBValue(dbType, queries);
+				}
+				queries.put(wbName, new Query(queryId, wsName, query));
+				dbMap.put(dbName, dbVal);
 			}
 			
-			List<DB> dbs = new ArrayList<>();
-			for (String dbName : dbMap.keySet()) {
-				DBValue dbVal = dbMap.get(dbName);
-				List<Report> reportList = new ArrayList<>();
-				Multimap<String, Query> reportMap = dbVal.getQueries();
-				for (String wsName : reportMap.keySet()) {
-					Collection<Query> reportQueries = reportMap.get(wsName);
-					reportList.add(new Report(wsName, reportQueries.toArray(new Query[0])));
-				}
-				dbs.add(new DB(dbName, DBType.valueOf(dbVal.getDbType()), reportList));
-			}
-			
-			ConnectionConfig cc = new ConnectionConfig(host, port, user, pass, dbs);
-			connCache.put(host, cc);
+			ConnectionConfig cc = constructConnectionConfig(host, port, user, pass, dbMap);
+			connConfigCache.put(host, cc);
+			rs.close();
 			ps.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -354,17 +353,82 @@ public class DatabaseManager {
 		return true;
 	}
 	
+	private ConnectionConfig constructConnectionConfig(String host, int port, String user, String pass, Map<String, DBValue> dbMap) {
+		ConnectionConfig cc = new ConnectionConfig(host, port, user, pass);
+		for (String dbName : dbMap.keySet()) {
+			DBValue dbVal = dbMap.get(dbName);
+			List<Report> reports = new ArrayList<>();
+			String dbTypeStr = dbVal.getDbType();
+			DBType dbType = DBType.valueOf(dbTypeStr);
+			
+			DB db;
+			if (dbType == DBType.SQLITE) {
+				db = new DB(cc, dbName, dbType);
+			} else {
+				
+			}
+			Multimap<String, Query> queryMap = dbVal.getQueries();
+			for (String wsName : queryMap.keySet()) {
+				Collection<Query> queries = queryMap.get(wsName);
+				Query[] queryArr = queries.toArray(new Query[0]);
+				Report report = new Report(wsName, queryArr);
+				for (int i = 0; i < queryArr.length; i++) {
+					queryArr[i].setReport(report);
+				}
+				report.setDb(db);
+				reports.add(report);
+			}
+			db.setReports(reports);
+			cc.getDbs().add(db);
+		}
+		return cc;
+	}
+	
 	public ConnectionConfig getConnectionConfig(String host) {
-		return connCache.get(host);
+		return connConfigCache.get(host);
 	}
 	
 	public Collection<ConnectionConfig> getConnectionConfigs() {
-		return Collections.unmodifiableCollection(connCache.values());
+		return Collections.unmodifiableCollection(connConfigCache.values());
+	}
+	
+	public Database getDatabaseConnection(ConnectionConfig cc, DB db) {
+		
+		if (!cc.getDbs().contains(db)) {
+			System.out.println("This database isn't linked to this connection config!");
+			return null;
+		}
+		
+		String host = cc.getHost();
+		String dbName = db.getDatabaseName();
+		Database result = this.connDatabaseCache.get(host, dbName);
+		
+		if (result == null) {
+			switch (db.getType()) {
+			case SQLITE:
+				if (!cc.isLocalHost()) {
+					System.out.println("Tried to remotely access a SQLite database.");
+					return null;
+				}
+				result = new SQLiteDatabase(db.getSqliteDBFile());
+				break;
+			case SQL_SERVER:
+				result = new SQLServerDatabase(db.getServerName(), cc.getHost(), Integer.toString(cc.getPort()), db.getDatabaseName(), cc.getUser(), cc.getPass());
+				break;
+			case ORACLE:
+				// TODO
+				break;
+			default:
+				break;
+			}
+		}
+		
+		return result;
 	}
 	
 	public void close() {
 		try {
-			db.connection().close();
+			db.getConnection().close();
 			System.out.println("database closed");
 		} catch (SQLException e) {
 			e.printStackTrace();

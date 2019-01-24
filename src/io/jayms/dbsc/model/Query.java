@@ -5,6 +5,7 @@ import lombok.Setter;
 
 public class Query {
 
+	@Getter @Setter private Report report;
 	@Getter @Setter private int id;
 	@Getter @Setter private String worksheetName;
 	@Getter @Setter private String query;

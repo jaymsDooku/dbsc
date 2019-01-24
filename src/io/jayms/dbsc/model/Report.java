@@ -1,9 +1,11 @@
 package io.jayms.dbsc.model;
 
 import lombok.Getter;
+import lombok.Setter;
 
 public class Report {
 
+	@Getter @Setter private DB db;
 	@Getter private String workbookName;
 	@Getter private Query[] queries;
 	

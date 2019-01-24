@@ -1,5 +1,6 @@
 package io.jayms.dbsc.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import lombok.Getter;
@@ -13,12 +14,16 @@ public class ConnectionConfig {
 	@Getter @Setter private String pass;
 	@Getter @Setter private List<DB> dbs;
 	
-	public ConnectionConfig(String host, int port, String user, String pass, List<DB> dbs) {
+	public ConnectionConfig(String host, int port, String user, String pass) {
 		this.host = host;
 		this.port = port;
 		this.user = user;
 		this.pass = pass;
-		this.dbs = dbs;
+		this.dbs = new ArrayList<>();
+	}
+	
+	public boolean isLocalHost() {
+		return host.equalsIgnoreCase("127.0.0.1") || host.equalsIgnoreCase("localhost");
 	}
 	
 	@Override
