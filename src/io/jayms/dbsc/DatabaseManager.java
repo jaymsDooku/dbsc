@@ -1,5 +1,6 @@
 package io.jayms.dbsc;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -278,6 +279,7 @@ public class DatabaseManager {
 					}
 				}
 			}
+			connConfigCache.put(cc.getHost(), cc);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -324,9 +326,20 @@ public class DatabaseManager {
 				String query = rs.getString("QueryString");
 				int queryId = rs.getInt("QueryID");
 				
-				String dbType = rs.getString("DatabaseType");
+				String dbTypeStr = rs.getString("DatabaseType");
+				String dbFilePath = rs.getString("DBFilePath"); //allowed to be null if not sqlite
+				String serverName = rs.getString("ServerName"); //allowed to be null if not server required
 				
-				if (dbName == null || wbName == null || wsName == null || query == null || queryId == 0 || dbType == null) {
+				if (dbName == null || wbName == null || wsName == null || query == null || queryId == 0 || dbTypeStr == null) {
+					continue;
+				}
+				DBType dbType = DBType.valueOf(dbTypeStr.toUpperCase());
+				
+				if (dbFilePath == null && dbType == DBType.SQLITE) {
+					continue;
+				}
+				
+				if (serverName == null && (dbType == DBType.SQL_SERVER || dbType == DBType.ORACLE)) {
 					continue;
 				}
 				
@@ -337,7 +350,8 @@ public class DatabaseManager {
 					queries = dbVal.getQueries();
 				} else { // If not, initialize local variables.
 					queries = HashMultimap.create();
-					dbVal = new DBValue(dbType, queries);
+					File dbFile = dbFilePath == null ? null : new File(dbFilePath);
+					dbVal = new DBValue(dbType, queries, dbFile, serverName);
 				}
 				queries.put(wbName, new Query(queryId, wsName, query));
 				dbMap.put(dbName, dbVal);
@@ -358,14 +372,24 @@ public class DatabaseManager {
 		for (String dbName : dbMap.keySet()) {
 			DBValue dbVal = dbMap.get(dbName);
 			List<Report> reports = new ArrayList<>();
-			String dbTypeStr = dbVal.getDbType();
-			DBType dbType = DBType.valueOf(dbTypeStr);
+			DBType dbType = dbVal.getDbType();
+			
+			File sqliteDBFile = dbVal.getSqliteDBFile();
+			String serverName = dbVal.getServerName();
 			
 			DB db;
 			if (dbType == DBType.SQLITE) {
-				db = new DB(cc, dbName, dbType);
+				if (sqliteDBFile == null) {
+					System.out.println("No SQLite database name.");
+					return null;
+				}
+				db = new DB(cc, dbName, sqliteDBFile);
 			} else {
-				
+				if (serverName == null) {
+					System.out.println("No server name to connect to SQL Server or Oracle.");
+					return null;
+				}
+				db = new DB(cc, dbName, serverName, dbType);
 			}
 			Multimap<String, Query> queryMap = dbVal.getQueries();
 			for (String wsName : queryMap.keySet()) {
@@ -437,12 +461,16 @@ public class DatabaseManager {
 	
 	private static class DBValue {
 		
-		@Getter private String dbType;
+		@Getter private DBType dbType;
 		@Getter private Multimap<String, Query> queries;
+		@Getter private File sqliteDBFile;
+		@Getter private String serverName;
 		
-		public DBValue(String dbType, Multimap<String, Query> queries) {
+		public DBValue(DBType dbType, Multimap<String, Query> queries, File sqliteDBFile, String serverName) {
 			this.dbType = dbType;
 			this.queries = queries;
+			this.sqliteDBFile = sqliteDBFile;
+			this.serverName = serverName;
 		}
 	}
 }

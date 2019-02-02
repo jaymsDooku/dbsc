@@ -11,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
@@ -107,7 +108,7 @@ public class CreateConnectionUI extends StandaloneUIModule {
 		
 		createBtn = new Button("Create");
 		EventHandler<MouseEvent> createBtnPress = (MouseEvent e) -> {
-			onCreateConnection(e);
+			onCreateConnection();
 		};
 		createBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, createBtnPress);
 		createBtnCtr.getChildren().add(createBtn);
@@ -124,20 +125,29 @@ public class CreateConnectionUI extends StandaloneUIModule {
 				passCtr,
 				createBtnCtr);
 		
+		newConnectionScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if (event.getCode() == KeyCode.ENTER) {
+					onCreateConnection();
+				}
+			}
+		});
 		uiStage.setScene(newConnectionScene);
 	}
 	
-	private void onCreateConnection(MouseEvent e) {
+	private void onCreateConnection() {
 		DatabaseManager dbMan = masterUI.getDatabaseManager();
 		ConnectionConfig cc = new ConnectionConfig(hostnameTxt.getText(),
 				Integer.parseInt(portTxt.getText()),
 				userTxt.getText(),
 				passTxt.getText());
 		dbMan.store(cc);
+		
 		System.out.println("Creating new connection config: " + cc);
 		
 		LeftPane leftPane = masterUI.getLeftPane();
-		leftPane.newConnectionTreeItem(cc);
+		leftPane.getConnections().newConnectionTreeItem(cc);
 		close();
 	}
 
