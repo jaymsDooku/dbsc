@@ -14,7 +14,6 @@ import lombok.Getter;
 public class LeftPane extends AbstractUIModule {
 
 	@Getter private VBox leftPane;
-	private Button newConnectionsBtn;
 	@Getter private ConnectionTreeView connections;
 	
 	public LeftPane(DBSCGraphicalUserInterface masterUI) {
@@ -25,15 +24,6 @@ public class LeftPane extends AbstractUIModule {
 	public void init() {
 		leftPane = new VBox();
 		
-		//Initialize New Connection Button.
-		newConnectionsBtn = new Button("New Connection");
-		newConnectionsBtn.setMaxWidth(Double.MAX_VALUE);
-		
-		newConnectionsBtn.setOnMouseClicked((e) -> {
-			CreateConnectionUI createConnectionUI = masterUI.getCreateConnectionUI();
-			createConnectionUI.show();
-		});
-		
 		connections = new ConnectionTreeView(masterUI);
 		connections.init();
 		
@@ -43,7 +33,7 @@ public class LeftPane extends AbstractUIModule {
 			connections.newConnectionTreeItem(cc);
 		}
 		
-		leftPane.getChildren().addAll(newConnectionsBtn, connections.getConnections());
+		leftPane.getChildren().addAll(connections.getConnections());
 	}
 	
 	@Override

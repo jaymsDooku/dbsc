@@ -46,6 +46,7 @@ public class DatabaseManager {
 			 + ")";
 	private static final String INSERT_CONNECTION = "INSERT INTO CONNECTION(Hostname, Port, Username, Password) VALUES (?, ?, ?, ?)";
 	private static final String SELECT_CONNECTIONS = "SELECT * FROM CONNECTION LEFT JOIN DBS USING(ConnectionID) LEFT JOIN SSREPORT USING (DBID) LEFT JOIN SSREPORTQUERIES USING(ReportID)LEFT JOIN QUERIES USING (QueryID)";
+	private static final String DELETE_CONNECTION = "DELETE FROM CONNECTION WHERE ConnectionID = ?";
 	
 	private static final String DB_TBL = "DBS";
 	private static final String CREATE_DB_TBL = "CREATE TABLE DBS ("
@@ -60,6 +61,7 @@ public class DatabaseManager {
 	private static final String INSERT_DB_WITH_FILE = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, DBFilePath) VALUES (?, ?, ?, ?)";
 	private static final String INSERT_DB_WITH_SERVERNAME = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, ServerName) VALUES (?, ?, ?, ?)";
 	private static final String SELECT_DB = "SELECT DBID, DatabaseName FROM DBS WHERE ConnectionID = ?";
+	private static final String DELETE_DB = "DELETE FROM DBS WHERE DBID = ?";
 	
 	private static final String SSREPORT_TBL = "SSREPORT";
 	private static final String CREATE_SSREPORT_TBL = "CREATE TABLE SSREPORT ("
@@ -69,6 +71,7 @@ public class DatabaseManager {
 			+ ")";
 	private static final String INSERT_SSREPORT = "INSERT INTO SSREPORT(DBID, WorkbookName) VALUES (?, ?)";
 	private static final String SELECT_SSREPORT = "SELECT ReportID, WorkbookName FROM SSREPORT WHERE DBID = ?";
+	private static final String DELETE_SSREPORT = "DELETE FROM SSREPORT WHERE ReportID";
 	
 	private static final String SSREPORTQUERIES_TBL = "SSREPORTQUERIES";
 	private static final String CREATE_SSREPORTQUERIES_TBL = "CREATE TABLE SSREPORTQUERIES ("
@@ -77,6 +80,8 @@ public class DatabaseManager {
 			+ "QueryID INTEGER NOT NULL"
 			+ ")";
 	private static final String INSERT_SSREPORTQUERY = "INSERT INTO SSREPORTQUERIES(ReportID, QueryID) VALUES (?, ?)";
+	private static final String SELECT_SSREPORTQUERY = "SELECT * FROM SSREPORTQUERIES WHERE ReportID = ?";
+	private static final String DELETE_SSREPORTQUERY = "DELETE FROM SSREPORTQUERIES WHERE ReportID = ?";
 	
 	private static final String QUERIES_TBL = "QUERIES";
 	private static final String CREATE_QUERIES_TBL = "CREATE TABLE QUERIES ("
@@ -88,6 +93,7 @@ public class DatabaseManager {
 			+ ")";
 	private static final String INSERT_QUERY = "INSERT INTO QUERIES(WorksheetName, QueryString) VALUES (?, ?)";
 	private static final String UPDATE_QUERY = "UPDATE QUERIES SET WorksheetName = ?, QueryString = ? WHERE QueryID = ?";
+	private static final String DELETE_QUERY = "DELETE FROM QUERIES WHERE QueryID = ?";
 	
 	private SQLiteDatabase db;
 	
@@ -304,7 +310,7 @@ public class DatabaseManager {
 			while (rs.next()) {
 				int nextId = rs.getInt("ConnectionID");
 				if (id != nextId) {
-					ConnectionConfig cc = constructConnectionConfig(host, port, user, pass, dbMap);
+					ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
 					connConfigCache.put(host, cc);
 					id = nextId;
 					dbMap.clear();
@@ -357,7 +363,7 @@ public class DatabaseManager {
 				dbMap.put(dbName, dbVal);
 			}
 			
-			ConnectionConfig cc = constructConnectionConfig(host, port, user, pass, dbMap);
+			ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
 			connConfigCache.put(host, cc);
 			rs.close();
 			ps.close();
@@ -367,8 +373,8 @@ public class DatabaseManager {
 		return true;
 	}
 	
-	private ConnectionConfig constructConnectionConfig(String host, int port, String user, String pass, Map<String, DBValue> dbMap) {
-		ConnectionConfig cc = new ConnectionConfig(host, port, user, pass);
+	private ConnectionConfig constructConnectionConfig(int id, String host, int port, String user, String pass, Map<String, DBValue> dbMap) {
+		ConnectionConfig cc = new ConnectionConfig(id, host, port, user, pass);
 		for (String dbName : dbMap.keySet()) {
 			DBValue dbVal = dbMap.get(dbName);
 			List<Report> reports = new ArrayList<>();
@@ -448,6 +454,30 @@ public class DatabaseManager {
 		}
 		
 		return result;
+	}
+	
+	public boolean deleteConnectionConfig(ConnectionConfig cc) {
+		Connection conn = db.getConnection();
+		try {
+			PreparedStatement ps = conn.prepareStatement(DELETE_CONNECTION);
+			ps.setInt(1, cc.getId());
+			ps.executeUpdate();
+			return true;
+		} catch (SQLException e) {
+			return false;
+		}
+	}
+	
+	public boolean deleteDB(DB db) {
+		return false;
+	}
+	
+	public boolean deleteReport(Report report) {
+		return false;
+	}
+	
+	public boolean deleteQuery(Query query) {
+		return false;
 	}
 	
 	public void close() {

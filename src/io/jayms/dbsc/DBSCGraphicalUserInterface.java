@@ -99,7 +99,6 @@ public class DBSCGraphicalUserInterface extends Application {
 	
 	@Getter private final Set<UIModule> uiModules = new HashSet<>();
 	@Getter private	CreateConnectionUI createConnectionUI;
-	@Getter private RegisterDatabaseUI registerDatabaseUI;
 	@Getter private QueryBuilderUI queryBuilderUI;
 	
 	/*private static DB qbTestDB;
@@ -177,7 +176,6 @@ public class DBSCGraphicalUserInterface extends Application {
 	
 	private void initUIModules() {
 		createConnectionUI = new CreateConnectionUI(this);
-		registerDatabaseUI = new RegisterDatabaseUI(this);
 		
 		leftPane = new LeftPane(this);
 		rightPane = new RightPane(this);

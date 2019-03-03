@@ -4,9 +4,12 @@ import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.DatabaseManager;
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.ui.comp.LeftPane;
+import io.jayms.dbsc.util.ComponentFactory;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -138,10 +141,36 @@ public class CreateConnectionUI extends StandaloneUIModule {
 	
 	private void onCreateConnection() {
 		DatabaseManager dbMan = masterUI.getDatabaseManager();
-		ConnectionConfig cc = new ConnectionConfig(hostnameTxt.getText(),
-				Integer.parseInt(portTxt.getText()),
-				userTxt.getText(),
-				passTxt.getText());
+		
+		String hostname = hostnameTxt.getText();
+		
+		if (hostname.equalsIgnoreCase("localhost") || hostname.matches("^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])$")) {
+			ComponentFactory.error("Hostname needs to be localhost or an ip address.");
+			return;
+		}
+		
+		int port = 0;
+		boolean invalidPort = false;
+		try {
+			port = Integer.parseInt(portTxt.getText());
+			if (port < 0 || port > 65535) {
+				invalidPort = true;
+			}
+		} catch (NumberFormatException e) {
+			invalidPort = true;
+		}
+		if (invalidPort) {
+			ComponentFactory.error("Port needs to be an integer between 0 - 65535.");
+			return;
+		}
+		
+		String user = userTxt.getText();
+		String pass = passTxt.getText();
+		
+		ConnectionConfig cc = new ConnectionConfig(hostname,
+				port,
+				user,
+				pass);
 		dbMan.store(cc);
 		
 		System.out.println("Creating new connection config: " + cc);

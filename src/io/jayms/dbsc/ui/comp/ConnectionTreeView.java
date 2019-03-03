@@ -9,6 +9,14 @@ import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.AbstractUIModule;
+import io.jayms.dbsc.ui.RegisterDatabaseUI;
+import io.jayms.dbsc.ui.RegisterReportUI;
+import io.jayms.dbsc.ui.comp.treeitem.ConnectionTreeItem;
+import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
+import io.jayms.dbsc.ui.comp.treeitem.DBTreeItem;
+import io.jayms.dbsc.ui.comp.treeitem.QueryTreeItem;
+import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
+import io.jayms.dbsc.ui.comp.treeitem.RootTreeItem;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -18,7 +26,6 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.input.MouseButton;
@@ -29,32 +36,46 @@ import lombok.Getter;
 
 public class ConnectionTreeView extends AbstractUIModule {
 	
-	@Getter private ConnectionConfig selectedConnectionConfig;
-	@Getter private TreeView<String> connections;
-	@Getter private TreeItem<String> connectionsRoot;
+	@Getter private TreeView<DBSCTreeItem> connections;
+	@Getter private TreeItem<DBSCTreeItem> connectionsRoot;
 	
 	private Map<String, Query> queries = new HashMap<>();
 	private Map<String, Long> doubleClick = new HashMap<>();
-	private ContextMenu connectionCM;
-	private MenuItem newDB;
 	
-	private Map<TreeItem<String>, ConnectionConfig> connectionTreeItems = new HashMap<>();
-	private Map<TreeItem<String>, DB> dbTreeItems = new HashMap<>();
+	private Map<DBSCTreeItem, ConnectionConfig> connectionTreeItems = new HashMap<>();
+	private Map<DBSCTreeItem, DB> dbTreeItems = new HashMap<>();
+	private Map<DBSCTreeItem, Report> reportItems = new HashMap<>();
 	
-	private void newConnectionCM() {
-		connectionCM = new ContextMenu();
-		newDB = new MenuItem("New DB");
-		System.out.println("gang");
+	private ContextMenu newConnectionCM(ConnectionConfig connConfig) {
+		ContextMenu connectionCM = new ContextMenu();
+		MenuItem newDB = new MenuItem("New DB");
 		newDB.setOnAction(e -> {
-			System.out.println("hello");
-			newDB(); 
+			new RegisterDatabaseUI(masterUI, connConfig).show();
 		});
-		connectionCM.getItems().addAll(newDB);
+		MenuItem deleteConn = new MenuItem("Delete Connection");
+		deleteConn.setOnAction(e -> {
+			masterUI.getDatabaseManager().deleteConnectionConfig(connConfig);
+		});
+		connectionCM.getItems().addAll(newDB, deleteConn);
+		return connectionCM;
 	}
 	
-	private void newDB() {
-		masterUI.getRegisterDatabaseUI().show();
-		System.out.println("showing db");
+	private ContextMenu newDatabaseCM(DB db) {
+		ContextMenu databaseCM = new ContextMenu();
+		MenuItem newDB = new MenuItem("New Report");
+		newDB.setOnAction(e -> {
+			new RegisterReportUI(masterUI, db).show();
+		});
+		MenuItem deleteConn = new MenuItem("Delete Database");
+		deleteConn.setOnAction(e -> {
+			masterUI.getDatabaseManager().deleteDB(db);
+		});
+		databaseCM.getItems().addAll(newDB, deleteConn);
+		return databaseCM;
+	}
+	
+	private void newReportCM(Report report) {
+		
 	}
 
 	public ConnectionTreeView(DBSCGraphicalUserInterface masterUI) {
@@ -63,7 +84,7 @@ public class ConnectionTreeView extends AbstractUIModule {
 	
 	@Override
 	public void init() {
-		connectionsRoot = new TreeItem<>("Connections");
+		connectionsRoot = new TreeItem<>(new RootTreeItem(masterUI));
 		connections = new TreeView<>(connectionsRoot);
 		connections.setMaxHeight(Double.MAX_VALUE);
 		connections.prefHeightProperty().bind(masterUI.getRootPane().heightProperty());
@@ -73,13 +94,13 @@ public class ConnectionTreeView extends AbstractUIModule {
 		connections.addEventHandler(MouseEvent.MOUSE_CLICKED, clickedQueryItem);
 	}
 	
-	public TreeItem<String> newDBTreeItem(TreeItem<String> connItem, DB db) {
-		TreeItem<String> dbItem = new TreeItem<>(db.getDatabaseName());
+	public TreeItem<DBSCTreeItem> newDBTreeItem(TreeItem<DBSCTreeItem> connItem, DB db) {
+		TreeItem<DBSCTreeItem> dbItem = new TreeItem<>(new DBTreeItem(masterUI, db.getDatabaseName()));
 		for (Report report : db.getReports()) {
-			TreeItem<String> reportItem = new TreeItem<>(report.getWorkbookName());
+			TreeItem<DBSCTreeItem> reportItem = new TreeItem<>(new ReportTreeItem(masterUI, report.getWorkbookName()));
 			for (Query query : report.getQueries()) {
 				String wsName = query.getWorksheetName();
-				TreeItem<String> queryItem = new TreeItem<>(query.getWorksheetName());
+				TreeItem<DBSCTreeItem> queryItem = new TreeItem<>(new QueryTreeItem(masterUI, query.getWorksheetName()));
 				queries.put(wsName, query);
 				reportItem.getChildren().add(queryItem);
 			}
@@ -88,14 +109,15 @@ public class ConnectionTreeView extends AbstractUIModule {
 		return dbItem;
 	}
 	
-	public TreeItem<String> newConnectionTreeItem(ConnectionConfig cc) {
-		TreeItem<String> connItem = new TreeItem<>(cc.getHost());
-		for (DB db : cc.getDbs()) {
-			TreeItem<String> dbItem = newDBTreeItem(connItem, db);
+	public TreeItem<DBSCTreeItem> newConnectionTreeItem(ConnectionConfig connConfig) {
+		ConnectionTreeItem connTreeItem = new ConnectionTreeItem(masterUI, connConfig);
+		TreeItem<DBSCTreeItem> connItem = new TreeItem<>(connTreeItem);
+		for (DB db : connConfig.getDbs()) {
+			TreeItem<DBSCTreeItem> dbItem = newDBTreeItem(connItem, db);
 			connItem.getChildren().add(dbItem);
 		}
 		connectionsRoot.getChildren().add(connItem);
-		connectionTreeItems.put(connItem, cc);
+		connectionTreeItems.put(connTreeItem, connConfig);
 		return connItem;
 	}
 	
@@ -103,30 +125,31 @@ public class ConnectionTreeView extends AbstractUIModule {
 		Node node = e.getPickResult().getIntersectedNode();
 	    // Accept clicks only on node cells, and not on empty spaces of the TreeView
 		if (node == null) return;
-		if (!(node instanceof TreeCell) && !(node instanceof Text)) return;
-		
-		TreeCell<String> treeCell = (TreeCell<String>) node;
-    	TreeItem<String> treeItem = treeCell.getTreeItem();
-    	System.out.println("casted");
+		if (!(node instanceof DBSCTreeItem) && !(node instanceof Text)) return;
     	
-    	if (treeItem == null) return;
-    	
-        String name = (String) treeItem.getValue();
-        System.out.println("Node click: " + name);
+		DBSCTreeItem treeItem;
+        String name;
+        
+        if (node instanceof DBSCTreeItem) {
+        	treeItem = (DBSCTreeItem) node;
+        	name = treeItem.getTxt().getText();
+        } else {
+        	Text text = (Text) node;
+        	Node parentOfLabel = text.getParent().getParent().getParent();
+        	treeItem = (DBSCTreeItem) parentOfLabel;
+        	name = text.getText();
+        }
+        
         if (e.getButton() == MouseButton.SECONDARY) {
-        	System.out.println("Right click");
         	if (!connectionTreeItems.containsKey(treeItem)) return;
         	
-        	System.out.println("next");
     		ConnectionConfig cc = connectionTreeItems.get(treeItem);
     		if (cc == null) return;
     		
-    		System.out.println("CC exists");
     		if (connectionCM == null) {
-    			newConnectionCM();
+    			newConnectionCM(cc);
     		}
     		connectionCM.show(node, Side.RIGHT, 0, 0);
-    		selectedConnectionConfig = cc;
         	return;
         }
         
@@ -191,20 +214,20 @@ public class ConnectionTreeView extends AbstractUIModule {
 		
 	}
 
-	public TreeItem<String> getConnectionTreeItem(ConnectionConfig cc) {
+	public TreeItem<DBSCTreeItem> getConnectionTreeItem(ConnectionConfig cc) {
 		return getTreeItem(connectionsRoot.getChildren(), cc.getHost());
 	}
 	
-	public TreeItem<String> getDatabaseTreeItem(DB db) {
-		TreeItem<String> ccTreeItem = getConnectionTreeItem(db.getConnConfig());
+	public TreeItem<DBSCTreeItem> getDatabaseTreeItem(DB db) {
+		TreeItem<DBSCTreeItem> ccTreeItem = getConnectionTreeItem(db.getConnConfig());
 		
 		if (ccTreeItem == null) return null;
 		
 		return getTreeItem(ccTreeItem.getChildren(), db.getDatabaseName());
 	}
 	
-	private TreeItem<String> getTreeItem(ObservableList<TreeItem<String>> list, String val) {
-		for (TreeItem<String> item : list) {
+	private TreeItem<DBSCTreeItem> getTreeItem(ObservableList<TreeItem<DBSCTreeItem>> list, String val) {
+		for (TreeItem<DBSCTreeItem> item : list) {
 			if (item.getValue().equals(val)) {
 				return item;
 			}

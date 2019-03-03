@@ -8,6 +8,8 @@ import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DBType;
 import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
+import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
+import io.jayms.dbsc.ui.comp.treeitem.DBTreeItem;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -30,6 +32,8 @@ import javafx.stage.FileChooser.ExtensionFilter;
 
 public class RegisterDatabaseUI extends StandaloneUIModule {
 
+	private final ConnectionConfig selectedConnConfig;
+	
 	private Scene newDBScene;
 	private VBox newDBRoot;
 	
@@ -54,8 +58,9 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 	private HBox registerDBBtnCtr;
 	private Button registerDBBtn;
 	
-	public RegisterDatabaseUI(DBSCGraphicalUserInterface masterUI) {
+	public RegisterDatabaseUI(DBSCGraphicalUserInterface masterUI, ConnectionConfig connConfig) {
 		super(masterUI);
+		this.selectedConnConfig = connConfig;
 	}
 	
 	@Override
@@ -150,9 +155,8 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 	@Override
 	public void show() {
 		super.show();
-		ConnectionConfig selectedCC = masterUI.getLeftPane().getConnections().getSelectedConnectionConfig();
 		for (DBType dbType : DBType.values()) {
-			if (dbType == DBType.SQLITE && !selectedCC.isLocalHost()) {
+			if (dbType == DBType.SQLITE && !selectedConnConfig.isLocalHost()) {
 				continue;
 			}
 			dbTypeCmb.getItems().add(dbType.toString().toLowerCase());
@@ -172,11 +176,6 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		DBType dbType = DBType.valueOf(dbTypeCmb.getSelectionModel().getSelectedItem().toUpperCase());
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
-		ConnectionConfig selectedConnectionConfig = connTreeView.getSelectedConnectionConfig();
-		if (selectedConnectionConfig == null) {
-			System.out.println("Tried to register database but no selected connection config!");
-			return;
-		}
 		DB db;
 		if (dbType == DBType.SQLITE) {
 			File dbFile = this.dbFileChosen;
@@ -190,14 +189,14 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 				alert.showAndWait();
 				return;
 			}
-			db = new DB(selectedConnectionConfig, dbName, dbFile);
+			db = new DB(selectedConnConfig, dbName, dbFile);
 		} else {
-			db = new DB(selectedConnectionConfig, dbName, dbType);
+			db = new DB(selectedConnConfig, dbName, dbType);
 		}
-		selectedConnectionConfig.getDbs().add(db);
+		selectedConnConfig.getDbs().add(db);
 		
-		TreeItem<String> ccTreeItem = connTreeView.getConnectionTreeItem(selectedConnectionConfig);
-		TreeItem<String> dbTreeItem = new TreeItem<>(db.getDatabaseName());
+		TreeItem<DBSCTreeItem> ccTreeItem = connTreeView.getConnectionTreeItem(selectedConnConfig);
+		TreeItem<DBSCTreeItem> dbTreeItem = new TreeItem<>(new DBTreeItem(masterUI, db.getDatabaseName()));
 		ccTreeItem.getChildren().add(dbTreeItem);
 		
 		System.out.println("Creating new database: " + db);

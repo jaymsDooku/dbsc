@@ -8,6 +8,7 @@ import lombok.Setter;
 
 public class ConnectionConfig {
 
+	@Getter private int id;
 	@Getter @Setter private String host;
 	@Getter @Setter private int port;
 	@Getter @Setter private String user;
@@ -15,6 +16,11 @@ public class ConnectionConfig {
 	@Getter @Setter private List<DB> dbs;
 	
 	public ConnectionConfig(String host, int port, String user, String pass) {
+		this(-1, host, port, user, pass);
+	}
+	
+	public ConnectionConfig(int id, String host, int port, String user, String pass) {
+		this.id = id;
 		this.host = host;
 		this.port = port;
 		this.user = user;
