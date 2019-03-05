@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import io.jayms.dbsc.util.DBHelper;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,7 +17,7 @@ public class DB {
 	@Getter @Setter private List<Report> reports;
 	@Getter @Setter private DBType type;
 	@Getter @Setter private File sqliteDBFile;
-	@Getter @Setter private Set<Table> tables = null;
+	@Setter private Set<Table> tables = null;
 	
 	public DB(ConnectionConfig connConfig, String databaseName, DBType type) {
 		this(connConfig, databaseName, type, null, null);
@@ -42,6 +43,19 @@ public class DB {
 		this.serverName = serverName;
 		this.sqliteDBFile = sqliteDBFile;
 		this.reports = new ArrayList<>();
+	}
+	
+	public Set<Table> getTables() {
+		if (tables == null) {
+			DBHelper dbHelper = connConfig.getMasterUI().getDbHelper();
+			tables = dbHelper.fetchTables(this);
+			System.out.println("fetched tables");
+			System.out.println("tables");
+			tables.stream().forEach(t -> {
+				System.out.println(t.toString());
+			});
+		}
+		return tables;
 	}
 	
 	@Override

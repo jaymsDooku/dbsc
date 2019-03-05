@@ -167,7 +167,7 @@ public class CreateConnectionUI extends StandaloneUIModule {
 		String user = userTxt.getText();
 		String pass = passTxt.getText();
 		
-		ConnectionConfig cc = new ConnectionConfig(hostname,
+		ConnectionConfig cc = new ConnectionConfig(masterUI, hostname,
 				port,
 				user,
 				pass);

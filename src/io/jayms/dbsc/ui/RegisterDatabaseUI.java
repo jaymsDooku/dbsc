@@ -196,7 +196,7 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		selectedConnConfig.getDbs().add(db);
 		
 		TreeItem<DBSCTreeItem> ccTreeItem = connTreeView.getConnectionTreeItem(selectedConnConfig);
-		TreeItem<DBSCTreeItem> dbTreeItem = new TreeItem<>(new DBTreeItem(masterUI, db.getDatabaseName()));
+		TreeItem<DBSCTreeItem> dbTreeItem = new TreeItem<>(new DBTreeItem(masterUI, db));
 		ccTreeItem.getChildren().add(dbTreeItem);
 		
 		System.out.println("Creating new database: " + db);

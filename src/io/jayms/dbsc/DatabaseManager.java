@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 
 import io.jayms.dbsc.model.ConnectionConfig;
@@ -47,6 +45,8 @@ public class DatabaseManager {
 	private static final String INSERT_CONNECTION = "INSERT INTO CONNECTION(Hostname, Port, Username, Password) VALUES (?, ?, ?, ?)";
 	private static final String SELECT_CONNECTIONS = "SELECT * FROM CONNECTION LEFT JOIN DBS USING(ConnectionID) LEFT JOIN SSREPORT USING (DBID) LEFT JOIN SSREPORTQUERIES USING(ReportID)LEFT JOIN QUERIES USING (QueryID)";
 	private static final String DELETE_CONNECTION = "DELETE FROM CONNECTION WHERE ConnectionID = ?";
+	private static final String SELECT_CONNECTION = "SELECT * FROM CONNECTION WHERE ConnectionID = ?";
+	private static final String UPDATE_CONNECTION = "UPDATE CONNECTION SET Hostname = ?, Port = ?, Username = ?, Password = ? WHERE ConnectionID = ?";
 	
 	private static final String DB_TBL = "DBS";
 	private static final String CREATE_DB_TBL = "CREATE TABLE DBS ("
@@ -95,12 +95,15 @@ public class DatabaseManager {
 	private static final String UPDATE_QUERY = "UPDATE QUERIES SET WorksheetName = ?, QueryString = ? WHERE QueryID = ?";
 	private static final String DELETE_QUERY = "DELETE FROM QUERIES WHERE QueryID = ?";
 	
+	@Getter private final DBSCGraphicalUserInterface masterUI;
+	
 	private SQLiteDatabase db;
 	
 	private Map<String, ConnectionConfig> connConfigCache = new HashMap<>();
 	private Table<String, String, Database> connDatabaseCache = HashBasedTable.create();
 	
-	public DatabaseManager(SQLiteDatabase db) {
+	public DatabaseManager(DBSCGraphicalUserInterface masterUI, SQLiteDatabase db) {
+		this.masterUI = masterUI;
 		this.db = db;
 		load();
 	}
@@ -251,12 +254,30 @@ public class DatabaseManager {
 	public void store(ConnectionConfig cc) {
 		Connection conn = db.getConnection();
 		try {
-			PreparedStatement ps = conn.prepareStatement(INSERT_CONNECTION, Statement.RETURN_GENERATED_KEYS);
-			ps.setString(1, cc.getHost());
-			ps.setInt(2, cc.getPort());
-			ps.setString(3, cc.getUser());
-			ps.setString(4, cc.getPass()); // TODO: Encryption
-			int connId = ps.executeUpdate();
+			PreparedStatement ps;
+			int connId = cc.getId();
+			if (connId == -1) {
+				ps = conn.prepareStatement(INSERT_CONNECTION, Statement.RETURN_GENERATED_KEYS);
+			} else {
+				ps = conn.prepareStatement(UPDATE_CONNECTION);
+				ps.setInt(5, connId);
+			}
+			String host = cc.getHost();
+			int port = cc.getPort();
+			String user = cc.getUser();
+			String pass = cc.getPass();
+			System.out.println("host: " + host);
+			System.out.println("port: " + port);
+			System.out.println("user: " + user);
+			System.out.println("pass: " + pass);
+			ps.setString(1, host);
+			ps.setInt(2, port);
+			ps.setString(3, user);
+			ps.setString(4, pass); // TODO: Encryption
+			ps.executeUpdate();
+			if (connId == -1) {
+				ps.getGeneratedKeys().getInt(1);
+			}
 			ps.close();
 			
 			if (connId > 0) {
@@ -291,6 +312,13 @@ public class DatabaseManager {
 		}
 	}
 	
+	public void storeConnectionConfigs() {
+		Collection<ConnectionConfig> connConfig = getConnectionConfigs();
+		connConfig.stream().forEach(c -> {
+			store(c);
+		});
+	}
+	
 	public boolean loadConnectionConfigs() {
 		Connection conn = db.getConnection();
 		try {
@@ -321,6 +349,11 @@ public class DatabaseManager {
 				user = rs.getString("Username");
 				pass = rs.getString("Password");
 				
+				System.out.println("host: " + host);
+				System.out.println("port: " + port);
+				System.out.println("user: " + user);
+				System.out.println("pass: " + pass);
+				
 				if (host == null || port == 0 || user == null || pass == null) {
 					System.out.println("Failed to load connection configuration with ID: " + id);
 					continue;
@@ -332,13 +365,25 @@ public class DatabaseManager {
 				String query = rs.getString("QueryString");
 				int queryId = rs.getInt("QueryID");
 				
+				System.out.println("dbName: " + dbName);
+				System.out.println("wbName: " + wbName);
+				System.out.println("wsName: " + wsName);
+				System.out.println("query: " + query);
+				System.out.println("queryId: " + queryId);
+				
 				String dbTypeStr = rs.getString("DatabaseType");
 				String dbFilePath = rs.getString("DBFilePath"); //allowed to be null if not sqlite
 				String serverName = rs.getString("ServerName"); //allowed to be null if not server required
 				
-				if (dbName == null || wbName == null || wsName == null || query == null || queryId == 0 || dbTypeStr == null) {
+				System.out.println("dbTypeStr: " + dbTypeStr);
+				System.out.println("dbFilePath: " + dbFilePath);
+				System.out.println("serverName: " + serverName);
+				
+				if (dbTypeStr == null) {
+					System.out.println("Database Type is null.");
 					continue;
 				}
+				
 				DBType dbType = DBType.valueOf(dbTypeStr.toUpperCase());
 				
 				if (dbFilePath == null && dbType == DBType.SQLITE) {
@@ -350,21 +395,30 @@ public class DatabaseManager {
 				}
 				
 				DBValue dbVal;
-				Multimap<String, Query> queries;
+				Map<String, List<Query>> queries;
 				if (dbMap.containsKey(dbName)) { // If DBValue already initialized in the map, retrieve and populate local variables.
 					dbVal = dbMap.get(dbName);
 					queries = dbVal.getQueries();
 				} else { // If not, initialize local variables.
-					queries = HashMultimap.create();
+					queries = new HashMap<>();
 					File dbFile = dbFilePath == null ? null : new File(dbFilePath);
 					dbVal = new DBValue(dbType, queries, dbFile, serverName);
 				}
-				queries.put(wbName, new Query(queryId, wsName, query));
+				if (wbName != null) {
+					List<Query> queryList = queries.get(wbName);
+					
+					if (queryList == null) queryList = new ArrayList<>();
+					
+					if (queryId > 0 && wsName != null && query != null) {
+						queryList.add(new Query(queryId, wsName, query));
+					}
+					queries.put(wbName, queryList);
+				}
 				dbMap.put(dbName, dbVal);
+				
+				ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
+				connConfigCache.put(host, cc);
 			}
-			
-			ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
-			connConfigCache.put(host, cc);
 			rs.close();
 			ps.close();
 		} catch (SQLException e) {
@@ -374,7 +428,7 @@ public class DatabaseManager {
 	}
 	
 	private ConnectionConfig constructConnectionConfig(int id, String host, int port, String user, String pass, Map<String, DBValue> dbMap) {
-		ConnectionConfig cc = new ConnectionConfig(id, host, port, user, pass);
+		ConnectionConfig cc = new ConnectionConfig(this.masterUI, id, host, port, user, pass);
 		for (String dbName : dbMap.keySet()) {
 			DBValue dbVal = dbMap.get(dbName);
 			List<Report> reports = new ArrayList<>();
@@ -397,15 +451,14 @@ public class DatabaseManager {
 				}
 				db = new DB(cc, dbName, serverName, dbType);
 			}
-			Multimap<String, Query> queryMap = dbVal.getQueries();
+			Map<String, List<Query>> queryMap = dbVal.getQueries();
 			for (String wsName : queryMap.keySet()) {
 				Collection<Query> queries = queryMap.get(wsName);
 				Query[] queryArr = queries.toArray(new Query[0]);
-				Report report = new Report(wsName, queryArr);
+				Report report = new Report(db, wsName, queryArr);
 				for (int i = 0; i < queryArr.length; i++) {
 					queryArr[i].setReport(report);
 				}
-				report.setDb(db);
 				reports.add(report);
 			}
 			db.setReports(reports);
@@ -492,11 +545,11 @@ public class DatabaseManager {
 	private static class DBValue {
 		
 		@Getter private DBType dbType;
-		@Getter private Multimap<String, Query> queries;
+		@Getter private Map<String, List<Query>> queries;
 		@Getter private File sqliteDBFile;
 		@Getter private String serverName;
 		
-		public DBValue(DBType dbType, Multimap<String, Query> queries, File sqliteDBFile, String serverName) {
+		public DBValue(DBType dbType, Map<String, List<Query>> queries, File sqliteDBFile, String serverName) {
 			this.dbType = dbType;
 			this.queries = queries;
 			this.sqliteDBFile = sqliteDBFile;

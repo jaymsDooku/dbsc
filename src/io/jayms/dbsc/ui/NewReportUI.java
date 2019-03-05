@@ -1,36 +1,27 @@
 package io.jayms.dbsc.ui;
 
-import java.io.File;
-
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
-import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.DB;
-import io.jayms.dbsc.model.DBType;
+import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
-import io.jayms.dbsc.ui.comp.treeitem.DBTreeItem;
+import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
-import javafx.stage.FileChooser;
-import javafx.stage.FileChooser.ExtensionFilter;
 
-public class RegisterReportUI extends StandaloneUIModule {
+public class NewReportUI extends StandaloneUIModule {
 
 	private final DB selectedDB;
 	
@@ -44,7 +35,10 @@ public class RegisterReportUI extends StandaloneUIModule {
 	private Label reportNameLbl;
 	private TextField reportNameTxt;
 	
-	public RegisterReportUI(DBSCGraphicalUserInterface masterUI, DB db) {
+	private HBox newReportBtnCtr;
+	private Button newReportBtn;
+	
+	public NewReportUI(DBSCGraphicalUserInterface masterUI, DB db) {
 		super(masterUI);
 		this.selectedDB = db;
 	}
@@ -53,7 +47,7 @@ public class RegisterReportUI extends StandaloneUIModule {
 	public void init() {
 		super.init();
 		
-		uiStage = initStage("Register New Database");
+		uiStage = initStage("Register New Report");
 		
 		VBox root = new VBox();
 		HBox rootCtr = new HBox();
@@ -63,7 +57,7 @@ public class RegisterReportUI extends StandaloneUIModule {
 		newReportRoot.setSpacing(10);
 		rootCtr.getChildren().add(newReportRoot);
 		root.getChildren().add(rootCtr);
-		newReportScene = new Scene(root, 400, 300);
+		newReportScene = new Scene(root, 300, 200);
 		
 		newReportTitleCtr = new HBox();
 		newReportTitleCtr.setAlignment(Pos.CENTER);
@@ -82,14 +76,23 @@ public class RegisterReportUI extends StandaloneUIModule {
 		
 		reportNameCtr.getChildren().addAll(reportNameLbl, reportNameTxt);
 		
+		newReportBtnCtr = new HBox();
+		newReportBtnCtr.setAlignment(Pos.CENTER);
+		newReportBtn = new Button("New Report");
+		EventHandler<MouseEvent> registerBtnPress = (MouseEvent e) -> {
+			onNewReport();
+		};
+		newReportBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, registerBtnPress);
+		newReportBtnCtr.getChildren().add(newReportBtn);
+		
 		newReportRoot.getChildren().addAll(newReportTitleCtr,
-				reportNameCtr);
+				reportNameCtr, newReportBtnCtr);
 	
 		newReportScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
 			@Override
 			public void handle(KeyEvent event) {
 				if (event.getCode() == KeyCode.ENTER) {
-					onRegisterDB();
+					onNewReport();
 				}
 			}
 		});
@@ -106,13 +109,18 @@ public class RegisterReportUI extends StandaloneUIModule {
 		super.close();
 	}
 	
-	private void onRegisterDB() {
+	private void onNewReport() {
 		String reportName = reportNameTxt.getText();
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
 		
-		TreeItem<DBSCTreeItem> ccTreeItem = connTreeView.getConnectionTreeItem(selectedDB.getConnConfig());
+		Report report = new Report(selectedDB, reportName);
 		
+		TreeItem<DBSCTreeItem> dbTreeItem = connTreeView.getDatabaseTreeItem(selectedDB);
+		TreeItem<DBSCTreeItem> reportTreeItem = new TreeItem<>(new ReportTreeItem(masterUI, report));
+		dbTreeItem.getChildren().add(reportTreeItem);
+		
+		selectedDB.getReports().add(report);
 		
 		System.out.println("Creating new report: " + reportName);
 		close();

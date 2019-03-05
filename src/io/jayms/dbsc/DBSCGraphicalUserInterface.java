@@ -119,7 +119,7 @@ public class DBSCGraphicalUserInterface extends Application {
 	public void start(Stage stage) throws Exception {
 		File dbFile = new File("localDBs.sqlite");
 		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
-		databaseManager = new DatabaseManager(sqliteDb);
+		databaseManager = new DatabaseManager(this, sqliteDb);
 
 		if (databaseManager.loadConnectionConfigs()) {
 			System.out.println("Loaded connection configs.");
@@ -171,6 +171,7 @@ public class DBSCGraphicalUserInterface extends Application {
 		for (UIModule uiModule : uiModules) {
 			uiModule.close();
 		}
+		databaseManager.storeConnectionConfigs();
 		databaseManager.close();
 	}
 	
