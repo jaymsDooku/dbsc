@@ -11,6 +11,7 @@ import lombok.Setter;
 
 public class DB {
 	
+	@Getter private final int id;
 	@Getter private final ConnectionConfig connConfig;
 	@Getter private String serverName;
 	@Getter private String databaseName;
@@ -20,18 +21,31 @@ public class DB {
 	@Setter private Set<Table> tables = null;
 	
 	public DB(ConnectionConfig connConfig, String databaseName, DBType type) {
-		this(connConfig, databaseName, type, null, null);
+		this(-1, connConfig, databaseName, type, null, null);
 	}
 	
 	public DB(ConnectionConfig connConfig, String databaseName, String serverName, DBType type) {
-		this(connConfig, databaseName, type, serverName, null);
+		this(-1, connConfig, databaseName, type, serverName, null);
 	}
 	
 	public DB(ConnectionConfig connConfig, String databaseName, File sqliteDBFile) {
-		this(connConfig, databaseName, DBType.SQLITE, null, sqliteDBFile);
+		this(-1, connConfig, databaseName, DBType.SQLITE, null, sqliteDBFile);
 	}
 	
-	public DB(ConnectionConfig connConfig, String databaseName, DBType type, String serverName, File sqliteDBFile) {
+	public DB(int id, ConnectionConfig connConfig, String databaseName, DBType type) {
+		this(id, connConfig, databaseName, type, null, null);
+	}
+	
+	public DB(int id, ConnectionConfig connConfig, String databaseName, String serverName, DBType type) {
+		this(id, connConfig, databaseName, type, serverName, null);
+	}
+	
+	public DB(int id, ConnectionConfig connConfig, String databaseName, File sqliteDBFile) {
+		this(id, connConfig, databaseName, DBType.SQLITE, null, sqliteDBFile);
+	}
+	
+	public DB(int id, ConnectionConfig connConfig, String databaseName, DBType type, String serverName, File sqliteDBFile) {
+		this.id = id;
 		this.connConfig = connConfig;
 		this.databaseName = databaseName;
 		this.type = type;

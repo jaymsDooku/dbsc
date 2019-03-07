@@ -324,30 +324,25 @@ public class DatabaseManager {
 		try {
 			PreparedStatement ps = conn.prepareStatement(SELECT_CONNECTIONS);
 			ResultSet rs = ps.executeQuery();
-			
 			System.out.println("Querying database...");
-			if (!rs.next()) return false;
 			
 			System.out.println("Retrieving cc records...");
-			int id = rs.getInt("ConnectionID");
-			String host = rs.getString("Hostname");
-			int port = rs.getInt("Port");
-			String user = rs.getString("Username");
-			String pass = rs.getString("Password");
+			int id = -1;
+			
 			Map<String, DBValue> dbMap = new HashMap<>();
 			while (rs.next()) {
 				int nextId = rs.getInt("ConnectionID");
+				String host = rs.getString("Hostname");
+				int port = rs.getInt("Port");
+				String user = rs.getString("Username");
+				String pass = rs.getString("Password");
+				
 				if (id != nextId) {
-					ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
-					connConfigCache.put(host, cc);
+					/*ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
+					connConfigCache.put(host, cc);*/
 					id = nextId;
 					dbMap.clear();
 				}
-			
-				host = rs.getString("Hostname");
-				port = rs.getInt("Port");
-				user = rs.getString("Username");
-				pass = rs.getString("Password");
 				
 				System.out.println("host: " + host);
 				System.out.println("port: " + port);
@@ -359,14 +354,18 @@ public class DatabaseManager {
 					continue;
 				}
 				
+				int dbId = rs.getInt("DBID");
 				String dbName = rs.getString("DatabaseName");
 				String wbName = rs.getString("WorkbookName");
+				int reportId = rs.getInt("ReportID");
 				String wsName = rs.getString("WorksheetName");
 				String query = rs.getString("QueryString");
 				int queryId = rs.getInt("QueryID");
 				
+				System.out.println("dbId: " + dbId);
 				System.out.println("dbName: " + dbName);
 				System.out.println("wbName: " + wbName);
+				System.out.println("reportId: " + reportId);
 				System.out.println("wsName: " + wsName);
 				System.out.println("query: " + query);
 				System.out.println("queryId: " + queryId);
@@ -395,24 +394,25 @@ public class DatabaseManager {
 				}
 				
 				DBValue dbVal;
-				Map<String, List<Query>> queries;
+				Map<ReportKey, List<Query>> queries;
 				if (dbMap.containsKey(dbName)) { // If DBValue already initialized in the map, retrieve and populate local variables.
 					dbVal = dbMap.get(dbName);
 					queries = dbVal.getQueries();
 				} else { // If not, initialize local variables.
 					queries = new HashMap<>();
 					File dbFile = dbFilePath == null ? null : new File(dbFilePath);
-					dbVal = new DBValue(dbType, queries, dbFile, serverName);
+					dbVal = new DBValue(dbId, dbType, queries, dbFile, serverName);
 				}
 				if (wbName != null) {
-					List<Query> queryList = queries.get(wbName);
+					ReportKey key = queries.keySet().stream().filter(k -> k.getReportName().equals(wbName)).findFirst().orElse(null);
+					List<Query> queryList = key == null ? null : queries.get(key);
 					
 					if (queryList == null) queryList = new ArrayList<>();
 					
 					if (queryId > 0 && wsName != null && query != null) {
 						queryList.add(new Query(queryId, wsName, query));
 					}
-					queries.put(wbName, queryList);
+					queries.put(new ReportKey(reportId, wbName), queryList);
 				}
 				dbMap.put(dbName, dbVal);
 				
@@ -451,11 +451,13 @@ public class DatabaseManager {
 				}
 				db = new DB(cc, dbName, serverName, dbType);
 			}
-			Map<String, List<Query>> queryMap = dbVal.getQueries();
-			for (String wsName : queryMap.keySet()) {
-				Collection<Query> queries = queryMap.get(wsName);
+			Map<ReportKey, List<Query>> queryMap = dbVal.getQueries();
+			for (ReportKey repKey : queryMap.keySet()) {
+				Collection<Query> queries = queryMap.get(repKey);
 				Query[] queryArr = queries.toArray(new Query[0]);
-				Report report = new Report(db, wsName, queryArr);
+				int repId = repKey.getId();
+				String wsName = repKey.getReportName();
+				Report report = new Report(repId, db, wsName, masterUI.getDefaultDoubleBandFormat(), queryArr);
 				for (int i = 0; i < queryArr.length; i++) {
 					queryArr[i].setReport(report);
 				}
@@ -510,11 +512,15 @@ public class DatabaseManager {
 	}
 	
 	public boolean deleteConnectionConfig(ConnectionConfig cc) {
+		if (cc.getId() == -1) return false;
+		
 		Connection conn = db.getConnection();
 		try {
 			PreparedStatement ps = conn.prepareStatement(DELETE_CONNECTION);
 			ps.setInt(1, cc.getId());
 			ps.executeUpdate();
+			
+			cc.getDbs().stream().forEach(db -> deleteDB(db));
 			return true;
 		} catch (SQLException e) {
 			return false;
@@ -522,15 +528,49 @@ public class DatabaseManager {
 	}
 	
 	public boolean deleteDB(DB db) {
-		return false;
+		if (db.getId() == -1) return false;
+		
+		Connection conn = this.db.getConnection();
+		try {
+			PreparedStatement ps = conn.prepareStatement(DELETE_DB);
+			ps.setInt(1, db.getId());
+			ps.executeUpdate();
+			
+			db.getReports().stream().forEach(report -> deleteReport(report));
+			return true;
+		} catch (SQLException e) {
+			return false;
+		}
 	}
 	
 	public boolean deleteReport(Report report) {
-		return false;
+		if (report.getId() == -1) return false;
+		
+		Connection conn = this.db.getConnection();
+		try {
+			PreparedStatement ps = conn.prepareStatement(DELETE_SSREPORT);
+			ps.setInt(1, report.getId());
+			ps.executeUpdate();
+			
+			report.getQueries().stream().forEach(query -> deleteQuery(query));
+			return true;
+		} catch (SQLException e) {
+			return false;
+		}
 	}
 	
 	public boolean deleteQuery(Query query) {
-		return false;
+		if (query.getId() == -1) return false;
+		
+		Connection conn = this.db.getConnection();
+		try {
+			PreparedStatement ps = conn.prepareStatement(DELETE_QUERY);
+			ps.setInt(1, query.getId());
+			ps.executeUpdate();
+			return true;
+		} catch (SQLException e) {
+			return false;
+		}
 	}
 	
 	public void close() {
@@ -542,14 +582,26 @@ public class DatabaseManager {
 		}
 	}
 	
+	private static class ReportKey {
+		
+		@Getter private int id;
+		@Getter private String reportName;
+		
+		public ReportKey(int id, String reportName) {
+			this.id = id;
+			this.reportName = reportName;
+		}
+	}
+	
 	private static class DBValue {
 		
+		@Getter private int id;
 		@Getter private DBType dbType;
-		@Getter private Map<String, List<Query>> queries;
+		@Getter private Map<ReportKey, List<Query>> queries;
 		@Getter private File sqliteDBFile;
 		@Getter private String serverName;
 		
-		public DBValue(DBType dbType, Map<String, List<Query>> queries, File sqliteDBFile, String serverName) {
+		public DBValue(int id, DBType dbType, Map<ReportKey, List<Query>> queries, File sqliteDBFile, String serverName) {
 			this.dbType = dbType;
 			this.queries = queries;
 			this.sqliteDBFile = sqliteDBFile;

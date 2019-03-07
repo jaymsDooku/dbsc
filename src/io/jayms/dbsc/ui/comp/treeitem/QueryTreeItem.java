@@ -2,9 +2,12 @@ package io.jayms.dbsc.ui.comp.treeitem;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.Query;
+import io.jayms.dbsc.ui.NewQueryUI;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseButton;
@@ -16,7 +19,7 @@ public class QueryTreeItem extends DBSCTreeItem {
 	private static final long DOUBLE_CLICK_INTERVAL = 500;
 	
 	@Getter private final Query query;
-	@Getter private long lastClicked = Long.MAX_VALUE;
+	@Getter private long lastClicked = -1;
 	
 	public QueryTreeItem(DBSCGraphicalUserInterface masterUI, Query query) {
 		super(masterUI, new Label(query.getWorksheetName()), new Button("x"));
@@ -24,23 +27,50 @@ public class QueryTreeItem extends DBSCTreeItem {
 	}
 	
 	@Override
-	public void click(MouseButton mouseButton) {
+	public ContextMenu getContextMenu() {
+		return newQueryCM();
+	}
+	
+	private ContextMenu newQueryCM() {
+		ContextMenu queryCM = new ContextMenu();
+		MenuItem openInEditor = new MenuItem("Open In Editor");
+		openInEditor.setOnAction(e -> {
+			openInTab();
+		});
+		MenuItem deleteQuery = new MenuItem("Delete Query");
+		deleteQuery.setOnAction(e -> {
+			masterUI.getDatabaseManager().deleteQuery(query);
+		});
+		queryCM.getItems().addAll(openInEditor, deleteQuery);
+		return queryCM;
+	}
+	
+	@Override
+	public void click() {
 		long now = System.currentTimeMillis();
+		
+		if (lastClicked == -1) {
+			lastClicked = now;
+			return;
+		}
+		
 		long timePassed = now - lastClicked;
 		System.out.println("Time passed: " + timePassed);
 		lastClicked = now;
 		
 		if (timePassed < DOUBLE_CLICK_INTERVAL) {
-	        if (query != null) {
-	        	if (!isQueryTabOpen(query)) {
-	        		Tab tab = queryTab(query);
-	        		masterUI.getRightPane().getQueriesTab().getTabs().add(tab);
-	        	}
-	        }
+	        openInTab();
 		}
 	}
 	
-	private Tab queryTab(Query query) {
+	private void openInTab() {
+		if (isQueryTabOpen()) return;
+		
+		Tab tab = queryTab();
+		masterUI.getRightPane().getQueriesTab().getTabs().add(tab);
+	}
+	
+	private Tab queryTab() {
 		String wsName = query.getWorksheetName();
 		
 		Tab queryTab = new Tab();
@@ -59,7 +89,7 @@ public class QueryTreeItem extends DBSCTreeItem {
 	}
 
 	
-	private boolean isQueryTabOpen(Query query) {
+	private boolean isQueryTabOpen() {
 		String wsName = query.getWorksheetName();
 		for (Tab tab : masterUI.getRightPane().getQueriesTab().getTabs()) {
 			if (tab.getText().equalsIgnoreCase(wsName)) {

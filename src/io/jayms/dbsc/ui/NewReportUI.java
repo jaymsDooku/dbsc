@@ -1,5 +1,7 @@
 package io.jayms.dbsc.ui;
 
+import java.util.Iterator;
+
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Report;
@@ -7,10 +9,13 @@ import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
+import io.jayms.xlsx.model.StyleTable;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
@@ -19,7 +24,11 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import javafx.stage.PopupWindow;
+import javafx.stage.Window;
 
 public class NewReportUI extends StandaloneUIModule {
 
@@ -34,6 +43,14 @@ public class NewReportUI extends StandaloneUIModule {
 	private HBox reportNameCtr;
 	private Label reportNameLbl;
 	private TextField reportNameTxt;
+	
+	private HBox colour1Ctr;
+	private Label colour1Lbl;
+	private ColorPicker colour1Pkr;
+	
+	private HBox colour2Ctr;
+	private Label colour2Lbl;
+	private ColorPicker colour2Pkr;
 	
 	private HBox newReportBtnCtr;
 	private Button newReportBtn;
@@ -67,7 +84,7 @@ public class NewReportUI extends StandaloneUIModule {
 		newReportTitleCtr.getChildren().add(newReportTitle);
 		
 		reportNameCtr = new HBox();
-		reportNameCtr.setAlignment(Pos.CENTER_LEFT);
+		reportNameCtr.setAlignment(Pos.CENTER_RIGHT);
 		
 		reportNameLbl = new Label("Report Name: ");
 	
@@ -75,6 +92,42 @@ public class NewReportUI extends StandaloneUIModule {
 		reportNameTxt.setPromptText("Enter report name");
 		
 		reportNameCtr.getChildren().addAll(reportNameLbl, reportNameTxt);
+		
+		java.awt.Color defAwtClr1 = StyleTable.STYLE_TABLE.getStyle(8).getFill().getColor();
+		java.awt.Color defAwtClr2 = StyleTable.STYLE_TABLE.getStyle(9).getFill().getColor();
+		
+		Color defClr1 = awtToJavaFXColor(defAwtClr1);
+		Color defClr2 = awtToJavaFXColor(defAwtClr2);
+		
+		colour1Ctr = new HBox();
+		colour1Ctr.setAlignment(Pos.CENTER_RIGHT);
+		colour1Lbl = new Label("Pick colour 1: ");
+		colour1Pkr = new ColorPicker();
+		colour1Pkr.setValue(defClr1);
+		colour1Pkr.showingProperty().addListener((obs, b, b1) -> {
+			if (b1) {
+				PopupWindow popupWindow = getPopupWindow();
+				System.out.println("popup window: " + popupWindow);
+				Node popup = popupWindow.getScene().getRoot();
+				System.out.println(popup);
+				popup.lookupAll(".color-rect").stream()
+					.forEach(rect -> {
+						Color c = (Color)((Rectangle) rect).getFill();
+						
+						((Rectangle) rect).setFill(c.brighter());
+					});
+			}
+		});
+		
+		colour1Ctr.getChildren().addAll(colour1Lbl, colour1Pkr);
+		
+		colour2Ctr = new HBox();
+		colour2Ctr.setAlignment(Pos.CENTER_RIGHT);
+		colour2Lbl = new Label("Pick colour 2: ");
+		colour2Pkr = new ColorPicker();
+		colour2Pkr.setValue(defClr2);
+		
+		colour2Ctr.getChildren().addAll(colour2Lbl, colour2Pkr);
 		
 		newReportBtnCtr = new HBox();
 		newReportBtnCtr.setAlignment(Pos.CENTER);
@@ -86,7 +139,7 @@ public class NewReportUI extends StandaloneUIModule {
 		newReportBtnCtr.getChildren().add(newReportBtn);
 		
 		newReportRoot.getChildren().addAll(newReportTitleCtr,
-				reportNameCtr, newReportBtnCtr);
+				reportNameCtr, colour1Ctr, colour2Ctr, newReportBtnCtr);
 	
 		newReportScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
 			@Override
@@ -114,7 +167,7 @@ public class NewReportUI extends StandaloneUIModule {
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
 		
-		Report report = new Report(selectedDB, reportName);
+		Report report = new Report(selectedDB, reportName, masterUI.getDefaultDoubleBandFormat());
 		
 		TreeItem<DBSCTreeItem> dbTreeItem = connTreeView.getDatabaseTreeItem(selectedDB);
 		TreeItem<DBSCTreeItem> reportTreeItem = new TreeItem<>(new ReportTreeItem(masterUI, report));
@@ -126,4 +179,24 @@ public class NewReportUI extends StandaloneUIModule {
 		close();
 	}
 
+	private Color awtToJavaFXColor(java.awt.Color awtColor) {
+		int r = awtColor.getRed();
+		int g = awtColor.getGreen();
+		int b = awtColor.getBlue();
+		int a = awtColor.getAlpha();
+		double opacity = a / 255.0 ;
+		javafx.scene.paint.Color fxColor = javafx.scene.paint.Color.rgb(r, g, b, opacity);
+		return fxColor;
+	}
+	
+	private PopupWindow getPopupWindow() {
+		final Iterator<Window> windows = Window.impl_getWindows();
+		while (windows.hasNext()) {
+			final Window window = windows.next();
+			if (window instanceof PopupWindow) {
+				return (PopupWindow) window;
+			}
+		}
+		return null;
+	}
 }
