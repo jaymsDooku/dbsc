@@ -7,6 +7,9 @@ public class DBSCColorPicker extends ColorPicker {
 
 	@Override
 	protected Skin<?> createDefaultSkin() {
-		return new DBSCColorPickerSkin(this);
+		DBSCColorPickerSkin skin = new DBSCColorPickerSkin(this);
+		skin.init(this);
+		return skin;
 	}
+	
 }

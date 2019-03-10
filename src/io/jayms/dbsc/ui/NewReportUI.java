@@ -7,15 +7,15 @@ import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
+import io.jayms.dbsc.ui.comp.colorpicker.DBSCColorPicker;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
+import io.jayms.dbsc.util.GeneralUtils;
 import io.jayms.xlsx.model.StyleTable;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
@@ -25,7 +25,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.PopupWindow;
 import javafx.stage.Window;
@@ -46,11 +45,11 @@ public class NewReportUI extends StandaloneUIModule {
 	
 	private HBox colour1Ctr;
 	private Label colour1Lbl;
-	private ColorPicker colour1Pkr;
+	private DBSCColorPicker colour1Pkr;
 	
 	private HBox colour2Ctr;
 	private Label colour2Lbl;
-	private ColorPicker colour2Pkr;
+	private DBSCColorPicker colour2Pkr;
 	
 	private HBox newReportBtnCtr;
 	private Button newReportBtn;
@@ -96,35 +95,21 @@ public class NewReportUI extends StandaloneUIModule {
 		java.awt.Color defAwtClr1 = StyleTable.STYLE_TABLE.getStyle(8).getFill().getColor();
 		java.awt.Color defAwtClr2 = StyleTable.STYLE_TABLE.getStyle(9).getFill().getColor();
 		
-		Color defClr1 = awtToJavaFXColor(defAwtClr1);
-		Color defClr2 = awtToJavaFXColor(defAwtClr2);
+		Color defClr1 = GeneralUtils.awtToJavaFXColor(defAwtClr1);
+		Color defClr2 = GeneralUtils.awtToJavaFXColor(defAwtClr2);
 		
 		colour1Ctr = new HBox();
 		colour1Ctr.setAlignment(Pos.CENTER_RIGHT);
 		colour1Lbl = new Label("Pick colour 1: ");
-		colour1Pkr = new ColorPicker();
+		colour1Pkr = new DBSCColorPicker();
 		colour1Pkr.setValue(defClr1);
-		colour1Pkr.showingProperty().addListener((obs, b, b1) -> {
-			if (b1) {
-				PopupWindow popupWindow = getPopupWindow();
-				System.out.println("popup window: " + popupWindow);
-				Node popup = popupWindow.getScene().getRoot();
-				System.out.println(popup);
-				popup.lookupAll(".color-rect").stream()
-					.forEach(rect -> {
-						Color c = (Color)((Rectangle) rect).getFill();
-						
-						((Rectangle) rect).setFill(c.brighter());
-					});
-			}
-		});
 		
 		colour1Ctr.getChildren().addAll(colour1Lbl, colour1Pkr);
 		
 		colour2Ctr = new HBox();
 		colour2Ctr.setAlignment(Pos.CENTER_RIGHT);
 		colour2Lbl = new Label("Pick colour 2: ");
-		colour2Pkr = new ColorPicker();
+		colour2Pkr = new DBSCColorPicker();
 		colour2Pkr.setValue(defClr2);
 		
 		colour2Ctr.getChildren().addAll(colour2Lbl, colour2Pkr);
@@ -177,16 +162,6 @@ public class NewReportUI extends StandaloneUIModule {
 		
 		System.out.println("Creating new report: " + reportName);
 		close();
-	}
-
-	private Color awtToJavaFXColor(java.awt.Color awtColor) {
-		int r = awtColor.getRed();
-		int g = awtColor.getGreen();
-		int b = awtColor.getBlue();
-		int a = awtColor.getAlpha();
-		double opacity = a / 255.0 ;
-		javafx.scene.paint.Color fxColor = javafx.scene.paint.Color.rgb(r, g, b, opacity);
-		return fxColor;
 	}
 	
 	private PopupWindow getPopupWindow() {
