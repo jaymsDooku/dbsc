@@ -3,6 +3,7 @@ package io.jayms.dbsc.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,11 +16,14 @@ public class ConnectionConfig {
 	@Getter @Setter private String pass;
 	@Getter @Setter private List<DB> dbs;
 	
-	public ConnectionConfig(String host, int port, String user, String pass) {
-		this(-1, host, port, user, pass);
+	@Getter private final DBSCGraphicalUserInterface masterUI;
+	
+	public ConnectionConfig(DBSCGraphicalUserInterface masterUI, String host, int port, String user, String pass) {
+		this(masterUI, -1, host, port, user, pass);
 	}
 	
-	public ConnectionConfig(int id, String host, int port, String user, String pass) {
+	public ConnectionConfig(DBSCGraphicalUserInterface masterUI, int id, String host, int port, String user, String pass) {
+		this.masterUI = masterUI;
 		this.id = id;
 		this.host = host;
 		this.port = port;
@@ -35,6 +39,7 @@ public class ConnectionConfig {
 	@Override
 	public String toString() {
 		String s = "{" +
+				"Id = " + getId() + "|" +
 				"Hostname = " + getHost() + "|" +
 				"Port = " + getPort() + "|" +
 				"User = " + getUser() + "|" +

@@ -9,8 +9,6 @@ import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.AbstractUIModule;
-import io.jayms.dbsc.ui.RegisterDatabaseUI;
-import io.jayms.dbsc.ui.RegisterReportUI;
 import io.jayms.dbsc.ui.comp.treeitem.ConnectionTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.DBTreeItem;
@@ -19,18 +17,12 @@ import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.RootTreeItem;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
-import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import lombok.Getter;
 
@@ -39,44 +31,9 @@ public class ConnectionTreeView extends AbstractUIModule {
 	@Getter private TreeView<DBSCTreeItem> connections;
 	@Getter private TreeItem<DBSCTreeItem> connectionsRoot;
 	
-	private Map<String, Query> queries = new HashMap<>();
-	private Map<String, Long> doubleClick = new HashMap<>();
+	@Getter private Map<String, Query> queries = new HashMap<>();
 	
-	private Map<DBSCTreeItem, ConnectionConfig> connectionTreeItems = new HashMap<>();
-	private Map<DBSCTreeItem, DB> dbTreeItems = new HashMap<>();
-	private Map<DBSCTreeItem, Report> reportItems = new HashMap<>();
-	
-	private ContextMenu newConnectionCM(ConnectionConfig connConfig) {
-		ContextMenu connectionCM = new ContextMenu();
-		MenuItem newDB = new MenuItem("New DB");
-		newDB.setOnAction(e -> {
-			new RegisterDatabaseUI(masterUI, connConfig).show();
-		});
-		MenuItem deleteConn = new MenuItem("Delete Connection");
-		deleteConn.setOnAction(e -> {
-			masterUI.getDatabaseManager().deleteConnectionConfig(connConfig);
-		});
-		connectionCM.getItems().addAll(newDB, deleteConn);
-		return connectionCM;
-	}
-	
-	private ContextMenu newDatabaseCM(DB db) {
-		ContextMenu databaseCM = new ContextMenu();
-		MenuItem newDB = new MenuItem("New Report");
-		newDB.setOnAction(e -> {
-			new RegisterReportUI(masterUI, db).show();
-		});
-		MenuItem deleteConn = new MenuItem("Delete Database");
-		deleteConn.setOnAction(e -> {
-			masterUI.getDatabaseManager().deleteDB(db);
-		});
-		databaseCM.getItems().addAll(newDB, deleteConn);
-		return databaseCM;
-	}
-	
-	private void newReportCM(Report report) {
-		
-	}
+	@Getter private Map<DBSCTreeItem, TreeItem<DBSCTreeItem>> treeItems = new HashMap<>();
 
 	public ConnectionTreeView(DBSCGraphicalUserInterface masterUI) {
 		super(masterUI);
@@ -94,13 +51,18 @@ public class ConnectionTreeView extends AbstractUIModule {
 		connections.addEventHandler(MouseEvent.MOUSE_CLICKED, clickedQueryItem);
 	}
 	
+	public void removeTreeItem(DBSCTreeItem item) {
+		TreeItem<DBSCTreeItem> treeItem = this.getTreeItems().get(item);
+		treeItem.getParent().getChildren().remove(treeItem);
+	}
+	
 	public TreeItem<DBSCTreeItem> newDBTreeItem(TreeItem<DBSCTreeItem> connItem, DB db) {
 		TreeItem<DBSCTreeItem> dbItem = new TreeItem<>(new DBTreeItem(masterUI, db));
 		for (Report report : db.getReports()) {
-			TreeItem<DBSCTreeItem> reportItem = new TreeItem<>(new ReportTreeItem(masterUI, report.getWorkbookName()));
+			TreeItem<DBSCTreeItem> reportItem = new TreeItem<>(new ReportTreeItem(masterUI, report));
 			for (Query query : report.getQueries()) {
 				String wsName = query.getWorksheetName();
-				TreeItem<DBSCTreeItem> queryItem = new TreeItem<>(new QueryTreeItem(masterUI, query.getWorksheetName()));
+				TreeItem<DBSCTreeItem> queryItem = new TreeItem<>(new QueryTreeItem(masterUI, query));
 				queries.put(wsName, query);
 				reportItem.getChildren().add(queryItem);
 			}
@@ -117,7 +79,7 @@ public class ConnectionTreeView extends AbstractUIModule {
 			connItem.getChildren().add(dbItem);
 		}
 		connectionsRoot.getChildren().add(connItem);
-		connectionTreeItems.put(connTreeItem, connConfig);
+		treeItems.put(connTreeItem, connItem);
 		return connItem;
 	}
 	
@@ -141,67 +103,13 @@ public class ConnectionTreeView extends AbstractUIModule {
         }
         
         if (e.getButton() == MouseButton.SECONDARY) {
-        	if (!connectionTreeItems.containsKey(treeItem)) return;
-        	
-    		ConnectionConfig cc = connectionTreeItems.get(treeItem);
-    		if (cc == null) return;
-    		
-    		ContextMenu connectionCM = newConnectionCM(cc);
-    		connectionCM.show(node, Side.RIGHT, 0, 0);
+        	treeItem.getContextMenu().show(node, Side.RIGHT, 0, 0);
         	return;
         }
         
-        if (queries.containsKey(name))  {
-	        if (doubleClick.containsKey(name)) {
-	        	System.out.println("Double clicking...");
-	        	long lastClick = doubleClick.get(name);
-	        	long timePassed = System.currentTimeMillis() - lastClick;
-	        	System.out.println("Time passed: " + timePassed);
-	        	if (timePassed < 500) {
-	        		Query query = queries.get(name);
-	    	        if (query != null) {
-	    	        	if (!isQueryTabOpen(name)) {
-	    	        		masterUI.getRightPane().getQueriesTab().getTabs().add(queryTab(name, query));
-	    	        	}
-	    	        }
-	    	        doubleClick.remove(name);
-	        	} else {
-	        		doubleClick.remove(name);
-	        		doubleClick.put(name, System.currentTimeMillis());
-	        	}
-	        } else {
-	        	System.out.println("Single click");
-	        	doubleClick.put(name, System.currentTimeMillis());
-	        	return;
-	        }
-        }
+        treeItem.click();
 	}
 	
-	private Tab queryTab(String wsName, Query query) {
-		Tab queryTab = new Tab();
-		queryTab.setUserData(query);
-		queryTab.setText(wsName);
-		
-		TextField queryTextBox = new TextField();
-		queryTextBox.setMaxWidth(Double.MAX_VALUE);
-		queryTextBox.setMaxHeight(Double.MAX_VALUE);
-		queryTextBox.setAlignment(Pos.TOP_LEFT);
-		queryTextBox.setText(query.getQuery());
-		queryTextBox.setFont(Font.loadFont(DBSCGraphicalUserInterface.EDITOR_FONT, 14));
-		queryTextBox.selectPositionCaret(0);
-		queryTab.setContent(queryTextBox);
-		return queryTab;
-	}
-	
-	private boolean isQueryTabOpen(String wsName) {
-		for (Tab tab : masterUI.getRightPane().getQueriesTab().getTabs()) {
-			if (tab.getText().equalsIgnoreCase(wsName)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	@Override
 	public void show() {
 		
@@ -217,6 +125,7 @@ public class ConnectionTreeView extends AbstractUIModule {
 	}
 	
 	public TreeItem<DBSCTreeItem> getDatabaseTreeItem(DB db) {
+		System.out.println("cc: " + db.getConnConfig());
 		TreeItem<DBSCTreeItem> ccTreeItem = getConnectionTreeItem(db.getConnConfig());
 		
 		if (ccTreeItem == null) return null;
@@ -224,9 +133,17 @@ public class ConnectionTreeView extends AbstractUIModule {
 		return getTreeItem(ccTreeItem.getChildren(), db.getDatabaseName());
 	}
 	
+	public TreeItem<DBSCTreeItem> getReportTreeItem(Report report) {
+		TreeItem<DBSCTreeItem> dbTreeItem = getDatabaseTreeItem(report.getDb());
+		
+		if (dbTreeItem == null) return null;
+		
+		return getTreeItem(dbTreeItem.getChildren(), report.getWorkbookName());
+	}
+	
 	private TreeItem<DBSCTreeItem> getTreeItem(ObservableList<TreeItem<DBSCTreeItem>> list, String val) {
 		for (TreeItem<DBSCTreeItem> item : list) {
-			if (item.getValue().equals(val)) {
+			if (item.getValue().getTxt().getText().equals(val)) {
 				return item;
 			}
 		}

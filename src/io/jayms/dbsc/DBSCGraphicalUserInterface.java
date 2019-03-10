@@ -1,26 +1,20 @@
 package io.jayms.dbsc;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import io.jayms.dbsc.model.ConnectionConfig;
-import io.jayms.dbsc.model.DB;
-import io.jayms.dbsc.model.DBType;
-import io.jayms.dbsc.model.Query;
-import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.CreateConnectionUI;
 import io.jayms.dbsc.ui.QueryBuilderUI;
-import io.jayms.dbsc.ui.RegisterDatabaseUI;
 import io.jayms.dbsc.ui.UIModule;
 import io.jayms.dbsc.ui.comp.ActionBar;
 import io.jayms.dbsc.ui.comp.LeftPane;
 import io.jayms.dbsc.ui.comp.RightPane;
 import io.jayms.dbsc.util.DBHelper;
+import io.jayms.xlsx.model.DoubleBandFormat;
+import io.jayms.xlsx.model.StyleTable;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -101,6 +95,8 @@ public class DBSCGraphicalUserInterface extends Application {
 	@Getter private	CreateConnectionUI createConnectionUI;
 	@Getter private QueryBuilderUI queryBuilderUI;
 	
+	@Getter private DoubleBandFormat defaultDoubleBandFormat;
+	
 	/*private static DB qbTestDB;
 	
 	static {
@@ -117,9 +113,11 @@ public class DBSCGraphicalUserInterface extends Application {
 	
 	@Override
 	public void start(Stage stage) throws Exception {
+		this.defaultDoubleBandFormat = new DoubleBandFormat(StyleTable.STYLE_TABLE.getStyle(7), StyleTable.STYLE_TABLE.getStyle(8));
+		
 		File dbFile = new File("localDBs.sqlite");
 		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
-		databaseManager = new DatabaseManager(sqliteDb);
+		databaseManager = new DatabaseManager(this, sqliteDb);
 
 		if (databaseManager.loadConnectionConfigs()) {
 			System.out.println("Loaded connection configs.");
@@ -171,6 +169,7 @@ public class DBSCGraphicalUserInterface extends Application {
 		for (UIModule uiModule : uiModules) {
 			uiModule.close();
 		}
+		databaseManager.storeConnectionConfigs();
 		databaseManager.close();
 	}
 	

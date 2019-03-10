@@ -67,14 +67,11 @@ public class RightPane extends AbstractUIModule {
 	
 	@Override
 	public void show() {
-		// TODO Auto-generated method stub
 		
 	}
 	
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
-		
 	}
 	
 	public void runQuery(MouseEvent e) {
