@@ -44,6 +44,7 @@ public class ActionBar extends AbstractUIModule {
 		
 		Query query = (Query) tabUserData;
 		DB selectedDB = query.getReport().getDb();
+		System.out.println("selected db: " + selectedDB);
 		QueryBuilderUI queryBuilderUI = new QueryBuilderUI(masterUI, selectedDB);
 		queryBuilderUI.show();
 	}

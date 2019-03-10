@@ -7,6 +7,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import io.jayms.dbsc.DatabaseManager;
 import io.jayms.dbsc.model.ConnectionConfig;
@@ -44,6 +46,10 @@ public class DBHelper {
 		
 		return new HashSet<>();
 	}
+	
+	public void fetchTablesAsync(DB db, Consumer<Set<Table>> cb) {
+		CompletableFuture.supplyAsync(() -> fetchTables(db)).thenAccept(cb);
+	}
 
 	private Set<Table> fetchSQLiteTables(Connection conn, DB db) {
 		try {
@@ -65,4 +71,11 @@ public class DBHelper {
 		}
 	}
 	
+	private Set<Table> fetchSQLServerTables(Connection conn, DB db) {
+		return null;
+	}
+	
+	private Set<Table> fetchOracleTables(Connection conn, DB db) {
+		return null;
+	}
 }

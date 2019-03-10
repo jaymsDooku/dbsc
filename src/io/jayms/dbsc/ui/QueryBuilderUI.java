@@ -47,6 +47,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 		
 		uiStage = new Stage();
 		uiStage.setTitle("Query Builder");
+		System.out.println("set title");
 		
 		queryBuilderRootPane = new VBox();
 		
@@ -56,6 +57,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 		qbAddTableCmb = new ComboBox<>();
 		qbAddTableBtn = new Button("Add Table");
 		qbAddTableCtr.getChildren().addAll(qbAddTableCmb, qbAddTableBtn);
+		System.out.println("set controls");
 	
 		Set<Table> tables = db.getTables();
 		if (tables == null) {
@@ -70,6 +72,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 		if (!qbAddTableCmb.getItems().isEmpty()) {
 			qbAddTableCmb.getSelectionModel().select(0);
 		}
+		System.out.println("populated combo with tables");
 		
 		queryBuilderActionBar.getChildren().add(qbAddTableCtr);
 		queryBuilderActionBar.setBorder(new Border(

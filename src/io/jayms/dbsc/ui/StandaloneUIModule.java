@@ -17,6 +17,7 @@ public abstract class StandaloneUIModule extends AbstractUIModule {
 		if(uiStage == null) {
 			init();
 		}
+		System.out.println("before show");
 		uiStage.show();
 	}
 	

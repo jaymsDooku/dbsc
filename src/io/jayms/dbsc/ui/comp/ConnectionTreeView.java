@@ -95,7 +95,7 @@ public class ConnectionTreeView extends AbstractUIModule {
 	}
 	
 	public TreeItem<DBSCTreeItem> newDBTreeItem(TreeItem<DBSCTreeItem> connItem, DB db) {
-		TreeItem<DBSCTreeItem> dbItem = new TreeItem<>(new DBTreeItem(masterUI, db.getDatabaseName()));
+		TreeItem<DBSCTreeItem> dbItem = new TreeItem<>(new DBTreeItem(masterUI, db));
 		for (Report report : db.getReports()) {
 			TreeItem<DBSCTreeItem> reportItem = new TreeItem<>(new ReportTreeItem(masterUI, report.getWorkbookName()));
 			for (Query query : report.getQueries()) {
@@ -135,7 +135,7 @@ public class ConnectionTreeView extends AbstractUIModule {
         	name = treeItem.getTxt().getText();
         } else {
         	Text text = (Text) node;
-        	Node parentOfLabel = text.getParent().getParent().getParent();
+        	Node parentOfLabel = text.getParent().getParent();
         	treeItem = (DBSCTreeItem) parentOfLabel;
         	name = text.getText();
         }
@@ -146,9 +146,7 @@ public class ConnectionTreeView extends AbstractUIModule {
     		ConnectionConfig cc = connectionTreeItems.get(treeItem);
     		if (cc == null) return;
     		
-    		if (connectionCM == null) {
-    			newConnectionCM(cc);
-    		}
+    		ContextMenu connectionCM = newConnectionCM(cc);
     		connectionCM.show(node, Side.RIGHT, 0, 0);
         	return;
         }

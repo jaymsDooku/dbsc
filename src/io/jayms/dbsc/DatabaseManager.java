@@ -24,6 +24,7 @@ import io.jayms.dbsc.model.DBType;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
 import io.jayms.xlsx.db.Database;
+import io.jayms.xlsx.db.OracleDatabase;
 import io.jayms.xlsx.db.SQLServerDatabase;
 import lombok.Getter;
 
@@ -446,7 +447,7 @@ public class DatabaseManager {
 				result = new SQLServerDatabase(db.getServerName(), cc.getHost(), Integer.toString(cc.getPort()), db.getDatabaseName(), cc.getUser(), cc.getPass());
 				break;
 			case ORACLE:
-				// TODO
+				result = new OracleDatabase(db.getServerName(), cc.getHost(), Integer.toString(cc.getPort()), db.getDatabaseName(), cc.getUser(), cc.getPass());
 				break;
 			default:
 				break;
