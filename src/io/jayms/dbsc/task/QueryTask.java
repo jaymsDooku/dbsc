@@ -2,8 +2,8 @@ package io.jayms.dbsc.task;
 
 import java.io.File;
 
+import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.DatabaseManager;
-import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
@@ -19,11 +19,11 @@ public class QueryTask extends Task<QueryTaskResult> {
 	@Getter private final int taskId;
 	@Getter private Query query;
 	
-	private DatabaseManager dbManager;
+	private DBSCGraphicalUserInterface masterUI;
 	
-	public QueryTask(int taskId, DatabaseManager dbManager, Query query, File toSave) {
+	public QueryTask(int taskId, DBSCGraphicalUserInterface masterUI, Query query, File toSave) {
 		this.taskId = taskId;
-		this.dbManager = dbManager;
+		this.masterUI = masterUI;
 		this.query = query;
 	}
 
@@ -32,19 +32,17 @@ public class QueryTask extends Task<QueryTaskResult> {
 		System.out.println("Running Query Task " + taskId);
 		Report report = query.getReport();
 		DB db = report.getDb();
-		ConnectionConfig cc = db.getConnConfig();
 		
-		Database connDB = dbManager.getDatabaseConnection(cc, db);
+		DatabaseManager dbManager = masterUI.getDatabaseManager();
+		Database connDB = dbManager.getDatabaseConnection(db);
 		DatabaseConverter converter = new DatabaseConverter(connDB);
 		
 		String worksheetName = query.getWorksheetName();
 		Workbook wb = new Workbook(report.getWorkbookName());
-		Worksheet worksheet;
-		if (wb.hasWorksheet(worksheetName)) {
-			worksheet = wb.getWorksheet(worksheetName);
-		} else {
-			worksheet = converter.addQueryToWorksheet(wb, worksheetName, query.getQuery());
-		}
+		Worksheet worksheet = converter.addQueryToWorksheet(wb, worksheetName, query.getQuery());
+		
+		File file = masterUI.getRightPane().getChosenFile();
+		wb.save(file);
 		
 		QueryTaskResult result = new QueryTaskResult(wb, worksheet);
 		return result;

@@ -242,7 +242,7 @@ public class DatabaseManager {
 		return result;
 	}
 	
-	private void updateQuery(int reportId, Query query) throws SQLException {
+	public void updateQuery(Query query) throws SQLException {
 		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(UPDATE_QUERY);
 		ps.setString(1, query.getWorksheetName());
@@ -300,7 +300,7 @@ public class DatabaseManager {
 								if (query.getId() == -1) {
 									insertQuery(reportId, query);
 								} else {
-									updateQuery(reportId, query);
+									updateQuery(query);
 								}
 							}
 						}
@@ -478,12 +478,8 @@ public class DatabaseManager {
 		return Collections.unmodifiableCollection(connConfigCache.values());
 	}
 	
-	public Database getDatabaseConnection(ConnectionConfig cc, DB db) {
-		
-		if (!cc.getDbs().contains(db)) {
-			System.out.println("This database isn't linked to this connection config!");
-			return null;
-		}
+	public Database getDatabaseConnection(DB db) {
+		ConnectionConfig cc = db.getConnConfig();
 		
 		String host = cc.getHost();
 		String dbName = db.getDatabaseName();

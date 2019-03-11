@@ -3,18 +3,13 @@ package io.jayms.dbsc.ui.comp;
 import java.io.File;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
-import io.jayms.dbsc.model.TabEditorData;
 import io.jayms.dbsc.ui.AbstractUIModule;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Orientation;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.SplitPane;
-import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.stage.FileChooser;
@@ -33,6 +28,7 @@ public class RightPane extends AbstractUIModule {
 	@Getter private File chosenFile;
 	
 	@Getter private TabPane queriesTab;
+	@Getter private ActionBar actionBar;
 	
 	public RightPane(DBSCGraphicalUserInterface masterUI) {
 		super(masterUI);
@@ -45,12 +41,19 @@ public class RightPane extends AbstractUIModule {
 		topPane = new HBox();
 		topPane.setMaxWidth(Double.MAX_VALUE);
 		
+		chosenFile = new File("test.xlsx");
+		
 		ssFileChooser = new FileChooser();
 		ssFileChooser.setTitle("Choose Spreadsheet Destination");
+		ssFileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
+		ssFileChooser.setInitialFileName("test.xlsx");
 		ssFileChooser.getExtensionFilters().add(new ExtensionFilter("Spreadsheet Files", ".xlsx"));
 		
 		pathDisplay = new TextField();
+		pathDisplay.textProperty().bind(Bindings.concat(ssFileChooser.initialDirectoryProperty().asString(), "\\", ssFileChooser.initialFileNameProperty().asString()));
+		pathDisplay.setEditable(false);
 		HBox.setHgrow(pathDisplay, Priority.ALWAYS);
+		
 		ssFileChooseBtn = new Button("Browse...");
 		
 		ssFileChooseBtn.setOnMouseClicked((e) -> {
@@ -60,9 +63,13 @@ public class RightPane extends AbstractUIModule {
 		
 		queriesTab = new TabPane();
 		
+		actionBar = new ActionBar(masterUI);
+		actionBar.init();
+		
 		rightPane.setDividerPosition(0, DBSCGraphicalUserInterface.rightTopPaneHeight);
+		rightPane.setDividerPosition(1, 0.95);
 		rightPane.setOrientation(Orientation.VERTICAL);
-		rightPane.getItems().addAll(topPane, queriesTab);
+		rightPane.getItems().addAll(topPane, queriesTab, actionBar.getActionBar());
 	}
 	
 	@Override
@@ -72,26 +79,5 @@ public class RightPane extends AbstractUIModule {
 	
 	@Override
 	public void close() {
-	}
-	
-	public void runQuery(MouseEvent e) {
-		if (chosenFile == null) {
-			Alert alert = new Alert(AlertType.ERROR, "You need to select a file destination first!", ButtonType.OK);
-			alert.showAndWait();
-			return;
-		}
-		Tab curTab = queriesTab.getSelectionModel().getSelectedItem();
-		if (curTab == null) {
-			System.out.println("No tab open.");
-			return;
-		}
-		String title = curTab.getText();
-		Object tabDataObj = curTab.getUserData();
-		if (tabDataObj == null || !(tabDataObj instanceof TabEditorData)) {
-			System.out.println("No tab editor data held");
-			return;
-		}
-		TabEditorData tabData = (TabEditorData) tabDataObj;
-		
 	}
 }

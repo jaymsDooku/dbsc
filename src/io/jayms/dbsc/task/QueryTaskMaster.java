@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 
 import com.google.common.collect.Maps;
 
-import io.jayms.dbsc.DatabaseManager;
+import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.Query;
 
 public class QueryTaskMaster {
@@ -15,16 +15,16 @@ public class QueryTaskMaster {
 	private int queryTaskId = 1;
 	private Map<Integer, QueryTask> queryTasks = Maps.newConcurrentMap();
 	private ExecutorService executorService;
-	private DatabaseManager dbManager;
+	private DBSCGraphicalUserInterface masterUI;
 	
-	public QueryTaskMaster(DatabaseManager dbManager, int poolSize) {
-		this.dbManager = dbManager;
+	public QueryTaskMaster(DBSCGraphicalUserInterface masterUI, int poolSize) {
+		this.masterUI = masterUI;
 		this.executorService = Executors.newFixedThreadPool(poolSize);
 	}
 	
 	public int startQuery(Query query, File toSave) {
 		int id = queryTaskId;
-		QueryTask queryTask = new QueryTask(id, dbManager, query, toSave);
+		QueryTask queryTask = new QueryTask(id, masterUI, query, toSave);
 		
 		executorService.submit(queryTask);
 		

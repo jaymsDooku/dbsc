@@ -5,6 +5,7 @@ import java.util.Set;
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Table;
+import io.jayms.dbsc.util.ComponentFactory;
 import io.jayms.dbsc.util.DBHelper;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -55,7 +56,11 @@ public class QueryBuilderUI extends StandaloneUIModule {
 		
 		qbAddTableCtr = new HBox();
 		qbAddTableCmb = new ComboBox<>();
-		qbAddTableBtn = new Button("Add Table");
+		
+		qbAddTableBtn = ComponentFactory.createButton("Add Table", (e) -> {
+			
+		});
+		
 		qbAddTableCtr.getChildren().addAll(qbAddTableCmb, qbAddTableBtn);
 		System.out.println("set controls");
 	

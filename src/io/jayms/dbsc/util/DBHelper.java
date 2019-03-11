@@ -27,8 +27,7 @@ public class DBHelper {
 	}
 	
 	public Set<Table> fetchTables(DB db) {
-		ConnectionConfig cc = db.getConnConfig();
-		Database dbConn = dbMan.getDatabaseConnection(cc, db);
+		Database dbConn = dbMan.getDatabaseConnection(db);
 		if (dbConn == null) {
 			System.out.println("Couldn't grab a connection for this database, so failed to fetch tables!");
 			return new HashSet<>();

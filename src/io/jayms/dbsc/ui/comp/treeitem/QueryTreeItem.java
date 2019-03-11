@@ -1,5 +1,7 @@
 package io.jayms.dbsc.ui.comp.treeitem;
 
+import java.sql.SQLException;
+
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.ui.NewQueryUI;
@@ -10,6 +12,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.text.Font;
 import lombok.Getter;
@@ -84,6 +87,23 @@ public class QueryTreeItem extends DBSCTreeItem {
 		queryTextBox.setText(query.getQuery());
 		queryTextBox.setFont(Font.loadFont(DBSCGraphicalUserInterface.EDITOR_FONT, 14));
 		queryTextBox.selectPositionCaret(0);
+		queryTextBox.setOnKeyReleased((e) -> {
+			if (e.getCode() == KeyCode.S && e.isControlDown()) {
+				queryTab.setText(query.getWorksheetName());
+				query.setQuery(queryTextBox.getText());
+				try {
+					masterUI.getDatabaseManager().updateQuery(query);
+				} catch (SQLException ex) {
+					ex.printStackTrace();
+				}
+				System.out.println("saved query");
+				return;
+			}
+		});
+		queryTextBox.setOnKeyTyped((e) -> {
+			queryTab.setText(query.getWorksheetName() + "*");
+		});
+		
 		queryTab.setContent(queryTextBox);
 		return queryTab;
 	}
