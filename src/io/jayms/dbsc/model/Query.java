@@ -10,12 +10,13 @@ public class Query {
 	@Getter @Setter private String worksheetName;
 	@Getter @Setter private String query;
 	
-	public Query(String worksheetName, String query) {
-		this(-1, worksheetName, query);
+	public Query(Report report, String worksheetName, String query) {
+		this(-1, report, worksheetName, query);
 	}
 	
-	public Query(int id, String worksheetName, String query) {
+	public Query(int id, Report report, String worksheetName, String query) {
 		this.id = id;
+		this.report = report;
 		this.worksheetName = worksheetName;
 		this.query = query;
 	}

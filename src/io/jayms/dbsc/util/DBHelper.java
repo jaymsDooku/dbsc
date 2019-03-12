@@ -5,7 +5,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -26,12 +28,12 @@ public class DBHelper {
 		this.dbMan = dbMan;
 	}
 	
-	public Set<Table> fetchTables(DB db) {
+	public List<Table> fetchTables(DB db) {
 		ConnectionConfig cc = db.getConnConfig();
 		Database dbConn = dbMan.getDatabaseConnection(cc, db);
 		if (dbConn == null) {
 			System.out.println("Couldn't grab a connection for this database, so failed to fetch tables!");
-			return new HashSet<>();
+			return new ArrayList<>();
 		}
 		Connection conn = dbConn.getConnection();
 		
@@ -46,14 +48,14 @@ public class DBHelper {
 			break;
 		}
 		
-		return new HashSet<>();
+		return new ArrayList<>();
 	}
 	
-	public void fetchTablesAsync(DB db, Consumer<Set<Table>> cb) {
+	public void fetchTablesAsync(DB db, Consumer<List<Table>> cb) {
 		CompletableFuture.supplyAsync(() -> fetchTables(db)).thenAccept(cb);
 	}
 
-	private Set<Table> fetchSQLiteTables(Connection conn, DB db) {
+	private List<Table> fetchSQLiteTables(Connection conn, DB db) {
 		try {
 			Statement stmt = conn.createStatement();
 			ResultSet tables = stmt.executeQuery("SELECT * FROM sqlite_master WHERE type=\"table\"");
@@ -65,7 +67,7 @@ public class DBHelper {
 				System.out.println("col name: " + meta.getColumnName(i));
 				System.out.println("col type: " + meta.getColumnType(i));
 			}
-			Set<Table> result = new HashSet<>();
+			List<Table> result = new ArrayList<>();
 
 			while (tables.next()) {
 				String tblName= tables.getString("tbl_name");
@@ -79,7 +81,7 @@ public class DBHelper {
 				Statement colStmt = conn.createStatement();
 				ResultSet columns = colStmt.executeQuery("SELECT * FROM " + tblName + " WHERE 1 < 0");
 				
-				Set<Column> columnSet = new HashSet<>();
+				List<Column> columnSet = new ArrayList<>();
 				
 				meta = columns.getMetaData();
 				colCount = meta.getColumnCount();
@@ -103,7 +105,7 @@ public class DBHelper {
 			return result;
 		} catch (SQLException e) {
 			e.printStackTrace();
-			return new HashSet<>();
+			return new ArrayList<>();
 		}
 	}
 	

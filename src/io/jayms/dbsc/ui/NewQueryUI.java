@@ -114,7 +114,7 @@ public class NewQueryUI extends StandaloneUIModule {
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
 		
-		Query query = new Query(queryName, "");
+		Query query = new Query(selectedReport, queryName, "");
 		
 		TreeItem<DBSCTreeItem> reportTreeItem = connTreeView.getReportTreeItem(selectedReport);
 		TreeItem<DBSCTreeItem> queryTreeItem = new TreeItem<>(new QueryTreeItem(masterUI, query));

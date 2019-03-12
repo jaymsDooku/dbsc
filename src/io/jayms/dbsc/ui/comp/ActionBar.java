@@ -3,6 +3,7 @@ package io.jayms.dbsc.ui.comp;
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Query;
+import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.AbstractUIModule;
 import io.jayms.dbsc.ui.QueryBuilderUI;
 import javafx.scene.control.Alert;
@@ -41,9 +42,13 @@ public class ActionBar extends AbstractUIModule {
 			alert.showAndWait();
 			return;
 		}
+		System.out.println("tabUserData: " + tabUserData);
 		
 		Query query = (Query) tabUserData;
-		DB selectedDB = query.getReport().getDb();
+		System.out.println("query: " + query);
+		Report report = query.getReport();
+		System.out.println("report: " + report);
+		DB selectedDB = report.getDb();
 		System.out.println("selected db: " + selectedDB);
 		QueryBuilderUI queryBuilderUI = new QueryBuilderUI(masterUI, selectedDB);
 		queryBuilderUI.show();

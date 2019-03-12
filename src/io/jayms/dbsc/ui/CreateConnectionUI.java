@@ -144,7 +144,7 @@ public class CreateConnectionUI extends StandaloneUIModule {
 		
 		String hostname = hostnameTxt.getText();
 		
-		if (hostname.equalsIgnoreCase("localhost") || hostname.matches("^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])$")) {
+		if (!hostname.equalsIgnoreCase("localhost") && !hostname.matches("^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])$")) {
 			ComponentFactory.error("Hostname needs to be localhost or an ip address.");
 			return;
 		}
@@ -177,6 +177,11 @@ public class CreateConnectionUI extends StandaloneUIModule {
 		
 		LeftPane leftPane = masterUI.getLeftPane();
 		leftPane.getConnections().newConnectionTreeItem(cc);
+		
+		hostnameTxt.clear();
+		portTxt.clear();
+		userTxt.clear();
+		passTxt.clear();
 		close();
 	}
 

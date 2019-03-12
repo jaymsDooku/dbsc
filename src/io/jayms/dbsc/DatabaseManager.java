@@ -257,6 +257,7 @@ public class DatabaseManager {
 		try {
 			PreparedStatement ps;
 			int connId = cc.getId();
+			System.out.println("start connId: " + connId);
 			if (connId == -1) {
 				ps = conn.prepareStatement(INSERT_CONNECTION, Statement.RETURN_GENERATED_KEYS);
 			} else {
@@ -275,14 +276,31 @@ public class DatabaseManager {
 			ps.setInt(2, port);
 			ps.setString(3, user);
 			ps.setString(4, pass); // TODO: Encryption
-			ps.executeUpdate();
+			
+			int affectedRows = ps.executeUpdate();
+			System.out.println("affectedRows: " + affectedRows);
+			
+			if (affectedRows == 0) {
+				System.out.println("Failed to store connection config.");
+				return;
+			}
+			
 			if (connId == -1) {
-				ps.getGeneratedKeys().getInt(1);
+				ResultSet generatedKeys = ps.getGeneratedKeys();
+				if (!generatedKeys.next()) {
+					System.out.println("Failed to store connection config.");
+					return;
+				}
+				connId = generatedKeys.getInt(1);
+				System.out.println("generatedId: " + connId);
+				cc.setId(connId);
 			}
 			ps.close();
 			
+			System.out.println("connId: " + connId);
 			if (connId > 0) {
 				List<DB> dbs = cc.getDbs();
+				System.out.println("dbs: " + dbs);
 				if (!dbs.isEmpty()) {
 					Map<String, Integer> existingDBs = fetchDBs(connId);
 					for (DB dbItem : dbs) {
@@ -395,7 +413,7 @@ public class DatabaseManager {
 				}
 				
 				DBValue dbVal;
-				Map<ReportKey, List<Query>> queries;
+				Map<ReportKey, List<QueryHolder>> queries;
 				if (dbMap.containsKey(dbName)) { // If DBValue already initialized in the map, retrieve and populate local variables.
 					dbVal = dbMap.get(dbName);
 					queries = dbVal.getQueries();
@@ -406,12 +424,12 @@ public class DatabaseManager {
 				}
 				if (wbName != null) {
 					ReportKey key = queries.keySet().stream().filter(k -> k.getReportName().equals(wbName)).findFirst().orElse(null);
-					List<Query> queryList = key == null ? null : queries.get(key);
+					List<QueryHolder> queryList = key == null ? null : queries.get(key);
 					
 					if (queryList == null) queryList = new ArrayList<>();
 					
 					if (queryId > 0 && wsName != null && query != null) {
-						queryList.add(new Query(queryId, wsName, query));
+						queryList.add(new QueryHolder(queryId, wsName, query));
 					}
 					queries.put(new ReportKey(reportId, wbName), queryList);
 				}
@@ -452,15 +470,14 @@ public class DatabaseManager {
 				}
 				db = new DB(cc, dbName, serverName, dbType);
 			}
-			Map<ReportKey, List<Query>> queryMap = dbVal.getQueries();
+			Map<ReportKey, List<QueryHolder>> queryMap = dbVal.getQueries();
 			for (ReportKey repKey : queryMap.keySet()) {
-				Collection<Query> queries = queryMap.get(repKey);
-				Query[] queryArr = queries.toArray(new Query[0]);
+				Collection<QueryHolder> queries = queryMap.get(repKey);
 				int repId = repKey.getId();
 				String wsName = repKey.getReportName();
-				Report report = new Report(repId, db, wsName, masterUI.getDefaultDoubleBandFormat(), queryArr);
-				for (int i = 0; i < queryArr.length; i++) {
-					queryArr[i].setReport(report);
+				Report report = new Report(repId, db, wsName, masterUI.getDefaultDoubleBandFormat());
+				for (QueryHolder qh : queries) {
+					report.getQueries().add(new Query(qh.getId(), report, qh.getWorksheetName(), qh.getQuery()));
 				}
 				reports.add(report);
 			}
@@ -598,15 +615,28 @@ public class DatabaseManager {
 		
 		@Getter private int id;
 		@Getter private DBType dbType;
-		@Getter private Map<ReportKey, List<Query>> queries;
+		@Getter private Map<ReportKey, List<QueryHolder>> queries;
 		@Getter private File sqliteDBFile;
 		@Getter private String serverName;
 		
-		public DBValue(int id, DBType dbType, Map<ReportKey, List<Query>> queries, File sqliteDBFile, String serverName) {
+		public DBValue(int id, DBType dbType, Map<ReportKey, List<QueryHolder>> queries, File sqliteDBFile, String serverName) {
 			this.dbType = dbType;
 			this.queries = queries;
 			this.sqliteDBFile = sqliteDBFile;
 			this.serverName = serverName;
+		}
+	}
+	
+	private static class QueryHolder {
+		
+		@Getter private int id;
+		@Getter private String worksheetName;
+		@Getter private String query;
+		
+		public QueryHolder(int id, String worksheetName, String query) {
+			this.id = id;
+			this.worksheetName = worksheetName;
+			this.query = query;
 		}
 	}
 }

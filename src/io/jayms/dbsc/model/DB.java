@@ -3,7 +3,6 @@ package io.jayms.dbsc.model;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import io.jayms.dbsc.util.DBHelper;
 import lombok.Getter;
@@ -18,7 +17,7 @@ public class DB {
 	@Getter @Setter private List<Report> reports;
 	@Getter @Setter private DBType type;
 	@Getter @Setter private File sqliteDBFile;
-	@Setter private Set<Table> tables = null;
+	@Setter private List<Table> tables = null;
 	
 	public DB(ConnectionConfig connConfig, String databaseName, DBType type) {
 		this(-1, connConfig, databaseName, type, null, null);
@@ -59,7 +58,7 @@ public class DB {
 		this.reports = new ArrayList<>();
 	}
 	
-	public Set<Table> getTables() {
+	public List<Table> getTables() {
 		if (tables == null) {
 			DBHelper dbHelper = connConfig.getMasterUI().getDbHelper();
 			tables = dbHelper.fetchTables(this);
