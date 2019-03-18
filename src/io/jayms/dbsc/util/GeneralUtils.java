@@ -13,4 +13,12 @@ public class GeneralUtils {
 		javafx.scene.paint.Color fxColor = javafx.scene.paint.Color.rgb(r, g, b, opacity);
 		return fxColor;
 	}
+	
+	public static java.awt.Color javafxToAwtColor(Color fx) {
+		java.awt.Color awtColor = new java.awt.Color((float) fx.getRed(),
+                (float) fx.getGreen(),
+                (float) fx.getBlue(),
+                (float) fx.getOpacity());
+		return awtColor;
+	}
 }

@@ -6,7 +6,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -14,7 +13,6 @@ import java.util.function.Consumer;
 
 import io.jayms.dbsc.DatabaseManager;
 import io.jayms.dbsc.model.Column;
-import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DataType;
 import io.jayms.dbsc.model.Table;
@@ -29,8 +27,7 @@ public class DBHelper {
 	}
 	
 	public List<Table> fetchTables(DB db) {
-		ConnectionConfig cc = db.getConnConfig();
-		Database dbConn = dbMan.getDatabaseConnection(cc, db);
+		Database dbConn = dbMan.getDatabaseConnection(db);
 		if (dbConn == null) {
 			System.out.println("Couldn't grab a connection for this database, so failed to fetch tables!");
 			return new ArrayList<>();

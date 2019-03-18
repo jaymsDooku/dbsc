@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import io.jayms.dbsc.model.ConnectionConfig;
+import io.jayms.dbsc.task.QueryTaskMaster;
 import io.jayms.dbsc.ui.CreateConnectionUI;
 import io.jayms.dbsc.ui.QueryBuilderUI;
 import io.jayms.dbsc.ui.UIModule;
@@ -84,12 +85,12 @@ public class DBSCGraphicalUserInterface extends Application {
 	
 	@Getter private SplitPane masterPane;
 	
-	@Getter private ActionBar actionBar;
 	@Getter private LeftPane leftPane;
 	@Getter private RightPane rightPane;
 	
 	@Getter private DatabaseManager databaseManager;
 	@Getter private DBHelper dbHelper;
+	@Getter private QueryTaskMaster queryTaskMaster;
 	
 	@Getter private final Set<UIModule> uiModules = new HashSet<>();
 	@Getter private	CreateConnectionUI createConnectionUI;
@@ -132,6 +133,7 @@ public class DBSCGraphicalUserInterface extends Application {
 		}
 		
 		dbHelper = new DBHelper(databaseManager);
+		queryTaskMaster = new QueryTaskMaster(this, 3);
 		
 		this.stage = stage;
 		stage.setTitle("DBSC");
@@ -156,7 +158,7 @@ public class DBSCGraphicalUserInterface extends Application {
 			onWidthResize(oldVal, newVal);
 		});
 		
-		rootPane.getChildren().addAll(actionBar.getActionBar(), masterPane);
+		rootPane.getChildren().addAll(masterPane);
 		genesisPane.setCenter(rootPane);
 		Scene scene = new Scene(genesisPane, 800, 600);
 		stage.setScene(scene);
@@ -182,9 +184,6 @@ public class DBSCGraphicalUserInterface extends Application {
 		uiModules.add(leftPane);
 		uiModules.add(rightPane);
 		
-		actionBar = new ActionBar(this);
-		
-		uiModules.add(actionBar);
 		for (UIModule uiModule : uiModules) {
 			uiModule.init();
 		}

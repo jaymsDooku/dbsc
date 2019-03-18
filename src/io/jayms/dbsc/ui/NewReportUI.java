@@ -11,11 +11,16 @@ import io.jayms.dbsc.ui.comp.colorpicker.DBSCColorPicker;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
 import io.jayms.dbsc.util.GeneralUtils;
+import io.jayms.xlsx.model.DoubleBandFormat;
+import io.jayms.xlsx.model.Style;
 import io.jayms.xlsx.model.StyleTable;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
@@ -149,10 +154,26 @@ public class NewReportUI extends StandaloneUIModule {
 	
 	private void onNewReport() {
 		String reportName = reportNameTxt.getText();
+		
+		if (reportName == null || reportName.isEmpty()) {
+			Alert alert = new Alert(AlertType.ERROR, "You need to specify a report name!", ButtonType.OK);
+			alert.showAndWait();
+			return;
+		}
+		
+		Color color1 = colour1Pkr.getValue();
+		Color color2 = colour2Pkr.getValue();
+		java.awt.Color awtColor1 = GeneralUtils.javafxToAwtColor(color1);
+		java.awt.Color awtColor2 = GeneralUtils.javafxToAwtColor(color2);
+		Style style1 = StyleTable.STYLE_TABLE.getStyle(awtColor1);
+		Style style2 = StyleTable.STYLE_TABLE.getStyle(awtColor2);
+		
+		DoubleBandFormat doubleBandFormat = new DoubleBandFormat(style1, style2);
+		
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
 		
-		Report report = new Report(selectedDB, reportName, masterUI.getDefaultDoubleBandFormat());
+		Report report = new Report(selectedDB, reportName, doubleBandFormat);
 		
 		TreeItem<DBSCTreeItem> dbTreeItem = connTreeView.getDatabaseTreeItem(selectedDB);
 		TreeItem<DBSCTreeItem> reportTreeItem = new TreeItem<>(new ReportTreeItem(masterUI, report));

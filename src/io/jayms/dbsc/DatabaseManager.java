@@ -68,11 +68,13 @@ public class DatabaseManager {
 	private static final String CREATE_SSREPORT_TBL = "CREATE TABLE SSREPORT ("
 			+ "ReportID INTEGER PRIMARY KEY AUTOINCREMENT, "
 			+ "DBID INTEGER NOT NULL, "
-			+ "WorkbookName TEXT NOT NULL"
+			+ "WorkbookName TEXT NOT NULL, "
+			+ "DoubleBandFormat TEXT NOT NULL,"
+			+ "TitleStyle TEXT NOT NULL"
 			+ ")";
-	private static final String INSERT_SSREPORT = "INSERT INTO SSREPORT(DBID, WorkbookName) VALUES (?, ?)";
+	private static final String INSERT_SSREPORT = "INSERT INTO SSREPORT(DBID, WorkbookName, DoubleBandFormat, TitleStyle) VALUES (?, ?, ?, ?)";
 	private static final String SELECT_SSREPORT = "SELECT ReportID, WorkbookName FROM SSREPORT WHERE DBID = ?";
-	private static final String DELETE_SSREPORT = "DELETE FROM SSREPORT WHERE ReportID";
+	private static final String DELETE_SSREPORT = "DELETE FROM SSREPORT WHERE ReportID = ?";
 	
 	private static final String SSREPORTQUERIES_TBL = "SSREPORTQUERIES";
 	private static final String CREATE_SSREPORTQUERIES_TBL = "CREATE TABLE SSREPORTQUERIES ("
@@ -242,7 +244,7 @@ public class DatabaseManager {
 		return result;
 	}
 	
-	private void updateQuery(int reportId, Query query) throws SQLException {
+	public void updateQuery(Query query) throws SQLException {
 		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(UPDATE_QUERY);
 		ps.setString(1, query.getWorksheetName());
@@ -318,7 +320,7 @@ public class DatabaseManager {
 								if (query.getId() == -1) {
 									insertQuery(reportId, query);
 								} else {
-									updateQuery(reportId, query);
+									updateQuery(query);
 								}
 							}
 						}
@@ -495,12 +497,8 @@ public class DatabaseManager {
 		return Collections.unmodifiableCollection(connConfigCache.values());
 	}
 	
-	public Database getDatabaseConnection(ConnectionConfig cc, DB db) {
-		
-		if (!cc.getDbs().contains(db)) {
-			System.out.println("This database isn't linked to this connection config!");
-			return null;
-		}
+	public Database getDatabaseConnection(DB db) {
+		ConnectionConfig cc = db.getConnConfig();
 		
 		String host = cc.getHost();
 		String dbName = db.getDatabaseName();

@@ -10,8 +10,11 @@ import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.DBTreeItem;
+import io.jayms.dbsc.util.Validation;
+import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -55,6 +58,10 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 	private FileChooser dbFileChooser;
 	private File dbFileChosen;
 	
+	private HBox dbServerNameCtr;
+	private Label dbServerNameLbl;
+	private TextField dbServerNameTxt;
+	
 	private HBox registerDBBtnCtr;
 	private Button registerDBBtn;
 	
@@ -92,13 +99,19 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		dbTypeCtr.setAlignment(Pos.CENTER_LEFT);
 		dbFileChooserCtr = new HBox();
 		dbFileChooserCtr.setAlignment(Pos.CENTER_LEFT);
+		dbServerNameCtr = new HBox();
+		dbServerNameCtr.setAlignment(Pos.CENTER_LEFT);
 		
 		dbNameLbl = new Label("DB Name: ");
 		dbTypeLbl = new Label("DB Type: ");
 		dbFileChooserLbl = new Label("DB File: ");
+		dbServerNameLbl = new Label("Server Name: ");
 	
 		dbNameTxt = new TextField();
 		dbNameTxt.setPromptText("Enter DB name");
+		
+		dbServerNameTxt = new TextField();
+		dbServerNameTxt.setPromptText("Enter server name");
 		
 		dbFileChooser = new FileChooser();
 		dbFileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
@@ -118,8 +131,17 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		dbTypeCmb.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
 			DBType dbType = DBType.valueOf(newValue.toUpperCase());
 			
+			ObservableList<Node> children = newDBRoot.getChildren();
 			if (dbType == DBType.SQLITE) {
-				newDBRoot.getChildren().add(3, dbFileChooserCtr);
+				if (children.contains(dbServerNameCtr)) {
+					children.remove(dbServerNameCtr);
+				}
+				children.add(3, dbFileChooserCtr);
+			} else {
+				if (children.contains(dbFileChooserCtr)) {
+					newDBRoot.getChildren().remove(dbFileChooserCtr);
+				}
+				children.add(3, dbServerNameCtr);
 			}
 		});
 		
@@ -135,6 +157,7 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		dbNameCtr.getChildren().addAll(dbNameLbl, dbNameTxt);
 		dbTypeCtr.getChildren().addAll(dbTypeLbl, dbTypeCmb);
 		dbFileChooserCtr.getChildren().addAll(dbFileChooserLbl, dbFileChooserPath, dbFileChooserBtn);
+		dbServerNameCtr.getChildren().addAll(dbServerNameLbl, dbServerNameTxt);
 		
 		newDBRoot.getChildren().addAll(newDBTitleCtr,
 				dbNameCtr,
@@ -173,23 +196,40 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 	
 	private void onRegisterDB() {
 		String dbName = dbNameTxt.getText();
+		
+		if (Validation.sanityString(dbName)) {
+			Validation.alert("You need to choose a database name!");
+			return;
+		}
+		
 		DBType dbType = DBType.valueOf(dbTypeCmb.getSelectionModel().getSelectedItem().toUpperCase());
+		
+		if (dbType == null) {
+			Validation.alert("You need to choose a database type!");
+			return;
+		}
+		
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
 		DB db;
 		if (dbType == DBType.SQLITE) {
 			File dbFile = this.dbFileChosen;
 			if (dbFile == null) {
-				Alert alert = new Alert(AlertType.ERROR, "You need to select a database file!", ButtonType.OK);
-				alert.showAndWait();
+				Validation.alert("You need to select a database file!");
 				return;
 			}
 			if (!dbFile.getPath().endsWith(".sqlite")) {
-				Alert alert = new Alert(AlertType.ERROR, "DB File needs to have a .sqlite extension.", ButtonType.OK);
-				alert.showAndWait();
+				Validation.alert("DB File needs to have a .sqlite extension.");
 				return;
 			}
 			db = new DB(selectedConnConfig, dbName, dbFile);
+		} else if (dbType == DBType.SQL_SERVER || dbType == DBType.ORACLE) {
+			String serverName = dbServerNameTxt.getText();
+			if (Validation.sanityString(serverName)) {
+				Validation.alert("You need to choose a server name!");
+				return;
+			}
+			db = new DB(selectedConnConfig, dbName, serverName, dbType);
 		} else {
 			db = new DB(selectedConnConfig, dbName, dbType);
 		}
