@@ -7,18 +7,13 @@ import io.jayms.dbsc.model.Column;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Table;
 import io.jayms.dbsc.util.ComponentFactory;
-import javafx.event.EventHandler;
+import io.jayms.dbsc.util.DraggableNode;
+import io.jayms.dbsc.util.DraggablePane;
 import javafx.geometry.Pos;
-import javafx.scene.Cursor;
-import javafx.scene.Node;
-import io.jayms.dbsc.util.DBHelper;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.input.Dragboard;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.TransferMode;
 import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
@@ -42,7 +37,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 	private ComboBox<String> qbAddTableCmb;
 	private Button qbAddTableBtn;
 	
-	private Pane queryBuilderPane;
+	private DraggablePane queryBuilderPane;
 	
 	private final DB db;
 	
@@ -72,10 +67,11 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			List<Table> tables = db.getTables();
 			Table table = tables.stream().filter(t -> t.getName().equals(tableName)).findFirst().orElse(null);
 			
+			DraggableNode draggable;
 			VBox tableCtr = new VBox();
 			tableCtr.setAlignment(Pos.CENTER);
 			tableCtr.setUserData(table);
-			enableDrag(tableCtr);
+			draggable = new DraggableNode(tableCtr);
 			
 			HBox tableHeaderCtr = new HBox();
 			tableHeaderCtr.setAlignment(Pos.CENTER);
@@ -96,7 +92,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			
 			tableCtr.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 			tableCtr.getChildren().addAll(tableHeaderCtr, tableColCtr);
-			queryBuilderPane.getChildren().add(tableCtr);
+			queryBuilderPane.addDraggable(draggable);
 		});
 		
 		qbAddTableCtr.getChildren().addAll(qbAddTableCmb, qbAddTableBtn);
@@ -114,51 +110,12 @@ public class QueryBuilderUI extends StandaloneUIModule {
 		queryBuilderActionBar.getChildren().add(qbAddTableCtr);
 		queryBuilderActionBar.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 		
-		queryBuilderPane = new Pane();
+		queryBuilderPane = new DraggablePane();
 		queryBuilderPane.setPrefSize(800, 600);
 		
 		queryBuilderRootPane.getChildren().addAll(queryBuilderPane, queryBuilderActionBar);
 		
 		queryBuilderScene = new Scene(queryBuilderRootPane, 800, 800);
 		uiStage.setScene(queryBuilderScene);
-	}
-
-	static class Delta { double x, y; }
-	// make a node movable by dragging it around with the mouse.
-	private void enableDrag(final Node circle) {
-	final Delta dragDelta = new Delta();
-	circle.setOnMousePressed(new EventHandler<MouseEvent>() {
-	  @Override public void handle(MouseEvent mouseEvent) {
-	    // record a delta distance for the drag and drop operation.
-	    dragDelta.x = circle.getTranslateX() - mouseEvent.getX();
-	    dragDelta.y = circle.getTranslateY() - mouseEvent.getY();
-	    circle.getScene().setCursor(Cursor.MOVE);
-	  }
-	});
-	circle.setOnMouseReleased(new EventHandler<MouseEvent>() {
-	  @Override public void handle(MouseEvent mouseEvent) {
-	    circle.getScene().setCursor(Cursor.HAND);
-	  }
-	});
-	circle.setOnMouseDragged(new EventHandler<MouseEvent>() {
-	  @Override public void handle(MouseEvent mouseEvent) {
-	    circle.setTranslateX(mouseEvent.getX() + dragDelta.x);
-	    circle.setTranslateY(mouseEvent.getY() + dragDelta.y);
-	  }
-	});
-	circle.setOnMouseEntered(new EventHandler<MouseEvent>() {
-	  @Override public void handle(MouseEvent mouseEvent) {
-	    if (!mouseEvent.isPrimaryButtonDown()) {
-	      circle.getScene().setCursor(Cursor.HAND);
-	    }
-	  }
-	});
-	circle.setOnMouseExited(new EventHandler<MouseEvent>() {
-	  @Override public void handle(MouseEvent mouseEvent) {
-	    if (!mouseEvent.isPrimaryButtonDown()) {
-	      circle.getScene().setCursor(Cursor.DEFAULT);
-	    }
-	  }
-	});
 	}
 }
