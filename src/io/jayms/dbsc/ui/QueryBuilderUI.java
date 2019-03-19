@@ -2,31 +2,39 @@ package io.jayms.dbsc.ui;
 
 import java.util.List;
 
+import com.google.common.collect.Multimap;
+
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.Column;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Table;
+import io.jayms.dbsc.qb.QueryBuilderContext;
 import io.jayms.dbsc.util.ComponentFactory;
 import io.jayms.dbsc.util.DraggableNode;
 import io.jayms.dbsc.util.DraggablePane;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 public class QueryBuilderUI extends StandaloneUIModule {
 
+	private static final Background UNSELECTED_BG = new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY));
+	private static final Background SELECTED_BG = new Background(new BackgroundFill(Color.GOLD, CornerRadii.EMPTY, Insets.EMPTY));
+	
 	private Scene queryBuilderScene;
 	
 	private VBox queryBuilderRootPane;
@@ -38,6 +46,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 	private Button qbAddTableBtn;
 	
 	private DraggablePane queryBuilderPane;
+	private QueryBuilderContext queryBuilderContext;
 	
 	private final DB db;
 	
@@ -77,7 +86,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			tableHeaderCtr.setAlignment(Pos.CENTER);
 			tableHeaderCtr.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 			Label tableLbl = new Label(tableName);
-			tableLbl.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+			//tableLbl.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 			tableHeaderCtr.getChildren().addAll(tableLbl);
 			
 			HBox tableColCtr = new HBox();
@@ -87,6 +96,17 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			columns.stream().forEach(c -> {
 				Label colLbl = new Label(c.getName());
 				colLbl.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+				colLbl.onMouseClickedProperty().set((colEv) -> {
+					Multimap<Table, Column> fieldsToSelect = queryBuilderContext.getFieldsToSelect();
+					
+					if (fieldsToSelect.containsEntry(table, c)) {
+						colLbl.setBackground(UNSELECTED_BG);
+						fieldsToSelect.remove(table, c);
+					} else {
+						colLbl.setBackground(SELECTED_BG);
+						fieldsToSelect.put(table, c);
+					}
+				});
 				tableColCtr.getChildren().add(colLbl);
 			});
 			
@@ -94,6 +114,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			tableCtr.getChildren().addAll(tableHeaderCtr, tableColCtr);
 			queryBuilderPane.addDraggable(draggable);
 		});
+		queryBuilderContext = new QueryBuilderContext();
 		
 		qbAddTableCtr.getChildren().addAll(qbAddTableCmb, qbAddTableBtn);
 		System.out.println("set controls");

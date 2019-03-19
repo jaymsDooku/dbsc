@@ -44,7 +44,18 @@ public class DraggablePane extends Pane {
 		return new Rectangle(newX, newY, (int) n.getWidth(), (int) n.getHeight());
 	}
 	
-	public CollisionResult hasCollided(DraggableNode dragNode, int newX, int newY) {
+	public boolean hasCollided(DraggableNode dragNode, int newX, int newY) {
+		Rectangle r1 = getRectangle(dragNode, newX, newY);
+		
+		return getDraggableNodes().stream().filter(n -> {
+				if (n.equals(dragNode)) return false;
+				
+				Rectangle r2 = getRectangle(n);
+				return r1.intersects(r2);
+			}).findFirst().isPresent();
+	}
+	
+	/*public CollisionResult hasCollided(DraggableNode dragNode, int newX, int newY) {
 		Rectangle r1 = getRectangle(dragNode, newX, newY);
 		
 		DraggableNode collidedWith = getDraggableNodes().stream().filter(n -> {
@@ -72,17 +83,25 @@ public class DraggablePane extends Pane {
 		
 		int fixedX = newX;
 		int fixedY = newY;
-		if (maxY > collidedY) {
+		if (maxY > collidedY && maxY < collidedMaxY) {
 			fixedY = collidedY - height;
+			System.out.println("maxY > collidedY");
+			//return new CollisionResult(fixedX, fixedY, true);
 		}
-		if (y < collidedMaxY) {
-			fixedY = collidedMaxY + 1;
+		if (y > collidedY && y < collidedMaxY) {
+			fixedY = collidedMaxY;
+			System.out.println("y < collidedMaxY");
+		//	return new CollisionResult(fixedX, fixedY, true);
 		}
-		if (maxX > collidedX) {
+		if (maxX > collidedX && maxX < collidedMaxX) {
 			fixedX = collidedX - width;
+			System.out.println("maxX > collidedX");
+	//		return new CollisionResult(fixedX, fixedY, true);
 		}
-		if (x < collidedMaxX) {
+		if (x < collidedMaxX && x > collidedX) {
 			fixedX = collidedMaxX + 1;
+			System.out.println("x < collidedMaxX");
+//			return new CollisionResult(fixedX, fixedY, true);
 		}
 		return new CollisionResult(fixedX, fixedY, true);
 	}
@@ -98,5 +117,5 @@ public class DraggablePane extends Pane {
 			this.fixedY = fixedY;
 			this.collided = collided;
 		}
-	}
+	}*/
 }

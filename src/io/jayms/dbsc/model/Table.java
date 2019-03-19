@@ -8,10 +8,12 @@ import lombok.Getter;
 public class Table {
 
 	@Getter private String name;
+	@Getter private int rowCount;
 	@Getter private List<Column> columns;
 	
-	public Table(String name, List<Column> columns) {
+	public Table(String name, int rowCount, List<Column> columns) {
 		this.name = name;
+		this.rowCount = rowCount;
 		this.columns = columns;
 	}
 }

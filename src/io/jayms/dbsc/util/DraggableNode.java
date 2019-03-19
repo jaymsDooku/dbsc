@@ -2,7 +2,6 @@ package io.jayms.dbsc.util;
 
 import java.awt.Rectangle;
 
-import io.jayms.dbsc.util.DraggablePane.CollisionResult;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
@@ -21,6 +20,8 @@ public class DraggableNode extends Pane {
     // node position
     @Getter private double x = 0;
     @Getter private double y = 0;
+    @Getter private double prevX = -1;
+    @Getter private double prevY = -1;
     // mouse position
     @Getter private double mousex = 0;
     @Getter private double mousey = 0;
@@ -40,7 +41,6 @@ public class DraggableNode extends Pane {
     }
     
     protected DraggablePane getDraggablePane() {
-    	System.out.println("parent: " + this.getParent());
     	return (this.getParent() instanceof DraggablePane) ? (DraggablePane) this.getParent() : null;
     }
 
@@ -72,11 +72,12 @@ public class DraggableNode extends Pane {
             double scaledX = tempX;
             double scaledY = tempY;
             
-            CollisionResult collisionCheck = getDraggablePane().hasCollided(this, (int) scaledX, (int) scaledY);
-            boolean hasCollided = collisionCheck.isCollided();
+            boolean hasCollided = getDraggablePane().hasCollided(this, (int) scaledX, (int) scaledY);
             if (hasCollided) {
-            	scaledX = collisionCheck.getFixedX();
-            	scaledY = collisionCheck.getFixedY();
+            	if (prevX == -1 || prevY == -1) return;
+            	
+            	scaledX = prevX; 
+            	scaledY = prevY;
             }
             
             BoundsResult boundsCheck = inBounds((int) scaledX, (int) scaledY);
@@ -85,6 +86,9 @@ public class DraggableNode extends Pane {
             	scaledX = boundsCheck.getFixedX();
             	scaledY = boundsCheck.getFixedY();
             }
+            
+            prevX = x;
+            prevY = y;
             
             x = scaledX;
             y = scaledY;

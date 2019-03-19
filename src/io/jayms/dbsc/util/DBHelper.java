@@ -94,7 +94,15 @@ public class DBHelper {
 				}
 				columns.close();
 				
-				Table table = new Table(tblName, columnSet);
+				Statement rowCountStmt = conn.createStatement();
+				ResultSet rowCountRS = rowCountStmt.executeQuery("SELECT COUNT(*) FROM " + tblName);
+				
+				int count = 0;
+				if (rowCountRS.next()) {
+					count = rowCountRS.getInt(1);
+				}
+				
+				Table table = new Table(tblName, count, columnSet);
 				result.add(table);
 			}
 			
