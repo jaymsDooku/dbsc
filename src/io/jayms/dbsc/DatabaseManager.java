@@ -422,6 +422,9 @@ public class DatabaseManager {
 				} else { // If not, initialize local variables.
 					queries = new HashMap<>();
 					File dbFile = dbFilePath == null ? null : new File(dbFilePath);
+					/*if (!dbFile.exists() && dbType == DBType.SQLITE) {
+						continue;
+					}*/
 					dbVal = new DBValue(dbId, dbType, queries, dbFile, serverName);
 				}
 				if (wbName != null) {

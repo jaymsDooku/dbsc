@@ -1,6 +1,8 @@
 package io.jayms.dbsc.ui;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import com.google.common.collect.Multimap;
 
@@ -12,6 +14,7 @@ import io.jayms.dbsc.qb.QueryBuilderContext;
 import io.jayms.dbsc.util.ComponentFactory;
 import io.jayms.dbsc.util.DraggableNode;
 import io.jayms.dbsc.util.DraggablePane;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -28,10 +31,13 @@ import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 
 public class QueryBuilderUI extends StandaloneUIModule {
 
+	private static final long JOIN_HOLD_DURATION = 1500;
+	
 	private static final Background UNSELECTED_BG = new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY));
 	private static final Background SELECTED_BG = new Background(new BackgroundFill(Color.GOLD, CornerRadii.EMPTY, Insets.EMPTY));
 	
@@ -94,8 +100,29 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			tableColCtr.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 			List<Column> columns = table.getColumns();
 			columns.stream().forEach(c -> {
+				HBox colCtr = new HBox();
 				Label colLbl = new Label(c.getName());
 				colLbl.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+				colLbl.onMousePressedProperty().set((colEv) -> {
+					long timeOfPress = System.currentTimeMillis();
+					long activateJoinTime = timeOfPress + JOIN_HOLD_DURATION;
+					Timer pressedTimer = new Timer();
+					pressedTimer.schedule(new TimerTask() {
+
+						@Override
+						public void run() {
+							if (System.currentTimeMillis() > activateJoinTime) {
+								Platform.runLater(() -> {
+									
+								});
+							}
+						}
+						
+					}, 0L, 1L);
+				});
+				colLbl.onMouseReleasedProperty().set((colEv) -> {
+					
+				});
 				colLbl.onMouseClickedProperty().set((colEv) -> {
 					Multimap<Table, Column> fieldsToSelect = queryBuilderContext.getFieldsToSelect();
 					
@@ -107,7 +134,9 @@ public class QueryBuilderUI extends StandaloneUIModule {
 						fieldsToSelect.put(table, c);
 					}
 				});
-				tableColCtr.getChildren().add(colLbl);
+				Circle colJoinIndicator = new Circle(2, Color.RED);
+				colCtr.getChildren().addAll(colLbl, colJoinIndicator);
+				tableColCtr.getChildren().add(colCtr);
 			});
 			
 			tableCtr.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));

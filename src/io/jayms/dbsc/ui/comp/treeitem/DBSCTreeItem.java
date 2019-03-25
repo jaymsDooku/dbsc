@@ -34,6 +34,10 @@ public abstract class DBSCTreeItem extends BorderPane {
 		this.setRight(addBtn);
 	}
 	
+	public boolean isActive() {
+		return true;
+	}
+	
 	public abstract void click();
 	
 	public abstract ContextMenu getContextMenu();
