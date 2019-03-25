@@ -17,7 +17,6 @@ public class DBSCTreeEventDispatcher implements EventDispatcher {
 	public Event dispatchEvent(Event event, EventDispatchChain tail) {
 		if (event instanceof MouseEvent) {
 			if (event.getEventType().equals(MouseEvent.MOUSE_CLICKED)) {
-				System.out.println("fuck nigga");
 				event.consume();
 			}
 		}

@@ -22,11 +22,17 @@ public class DBTreeItem extends DBSCTreeItem {
 	}
 	
 	@Override
+	public boolean hasSubItems() {
+		return !db.getReports().isEmpty();
+	}
+	
+	@Override
 	public boolean isActive() {
 		boolean isActive = true;
 		if (db.getType() == DBType.SQLITE) {
 			isActive = db.getSqliteDBFile().exists();
 		}
+		System.out.println("isActive: " + isActive);
 		return isActive;
 	}
 

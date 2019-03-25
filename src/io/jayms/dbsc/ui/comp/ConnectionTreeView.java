@@ -10,14 +10,13 @@ import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.AbstractUIModule;
 import io.jayms.dbsc.ui.comp.treeitem.ConnectionTreeItem;
-import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeEventDispatcher;
+import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeCell;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.DBTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.QueryTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.RootTreeItem;
 import javafx.collections.ObservableList;
-import javafx.event.EventDispatcher;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Side;
@@ -58,28 +57,7 @@ public class ConnectionTreeView extends AbstractUIModule {
 			
 			@Override
 			public TreeCell<DBSCTreeItem> call(TreeView<DBSCTreeItem> param) {
-				return new TreeCell<DBSCTreeItem>() {
-					
-					@Override
-					protected void updateItem(DBSCTreeItem item, boolean empty) {
-						super.updateItem(item, empty);
-						
-						if (item != null && !empty) {
-							Node disclosureNode = getDisclosureNode();
-							disclosureNode.addEventHandler(MouseEvent.MOUSE_PRESSED, (e) -> {
-								if (!item.isActive()) {
-									e.consume();
-								}
-							});
-							
-							Background bg = item.isActive() ? new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)) :
-								new Background(new BackgroundFill(Color.GREY, CornerRadii.EMPTY, Insets.EMPTY)); 
-							setText(item.getTxt().getText());
-							setBackground(bg);
-						}
-					}
-					
-				};
+				return new DBSCTreeCell();
 			}
 			
 		});
@@ -88,8 +66,6 @@ public class ConnectionTreeView extends AbstractUIModule {
 		EventHandler<MouseEvent> clickedQueryItem = (MouseEvent e) -> {
 			clickedTreeItem(e);
 		};
-		EventDispatcher originalDispatcher = connections.getEventDispatcher();
-		connections.setEventDispatcher(new DBSCTreeEventDispatcher(originalDispatcher));
 		connections.addEventHandler(MouseEvent.MOUSE_CLICKED, clickedQueryItem);
 	}
 	
@@ -118,14 +94,14 @@ public class ConnectionTreeView extends AbstractUIModule {
 		TreeItem<DBSCTreeItem> connItem = new TreeItem<>(connTreeItem);
 		for (DB db : connConfig.getDbs()) {
 			TreeItem<DBSCTreeItem> dbItem = newDBTreeItem(connItem, db);
-			dbItem.addEventHandler(TreeItem.branchExpandedEvent(), (e) -> {
-				System.out.println("FUCK NIGGA");
+			/*dbItem.addEventHandler(TreeItem.branchExpandedEvent(), (e) -> {
+				
 				e.consume();
 			});
 			dbItem.addEventHandler(TreeItem.graphicChangedEvent(), (e) -> {
-				System.out.println("FUCK NIGGA2");
 				e.consume();
-			});
+			});*/
+			
 			connItem.getChildren().add(dbItem);
 		}
 		connectionsRoot.getChildren().add(connItem);

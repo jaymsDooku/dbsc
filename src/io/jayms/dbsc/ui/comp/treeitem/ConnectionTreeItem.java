@@ -21,6 +21,11 @@ public class ConnectionTreeItem extends DBSCTreeItem {
 				}));
 		this.connConfig = connConfig;
 	}
+	
+	@Override
+	public boolean hasSubItems() {
+		return !connConfig.getDbs().isEmpty();
+	}
 
 	@Override
 	public void click() {

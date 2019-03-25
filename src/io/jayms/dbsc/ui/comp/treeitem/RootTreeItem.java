@@ -22,6 +22,11 @@ public class RootTreeItem extends DBSCTreeItem {
 	}
 	
 	@Override
+	public boolean hasSubItems() {
+		return !masterUI.getDatabaseManager().getConnectionConfigs().isEmpty();
+	}
+	
+	@Override
 	public void click() {
 	}
 	

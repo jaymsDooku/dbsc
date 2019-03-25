@@ -38,6 +38,8 @@ public abstract class DBSCTreeItem extends BorderPane {
 		return true;
 	}
 	
+	public abstract boolean hasSubItems();
+	
 	public abstract void click();
 	
 	public abstract ContextMenu getContextMenu();

@@ -30,6 +30,11 @@ public class QueryTreeItem extends DBSCTreeItem {
 	}
 	
 	@Override
+	public boolean hasSubItems() {
+		return false;
+	}
+	
+	@Override
 	public ContextMenu getContextMenu() {
 		return newQueryCM();
 	}

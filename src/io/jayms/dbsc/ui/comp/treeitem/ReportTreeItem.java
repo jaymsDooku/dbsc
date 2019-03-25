@@ -22,6 +22,11 @@ public class ReportTreeItem extends DBSCTreeItem {
 	}
 	
 	@Override
+	public boolean hasSubItems() {
+		return !report.getQueries().isEmpty();
+	}
+	
+	@Override
 	public void click() {
 	}
 	
