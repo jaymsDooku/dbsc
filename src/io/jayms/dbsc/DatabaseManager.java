@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
@@ -24,6 +26,7 @@ import io.jayms.dbsc.model.Report;
 import io.jayms.xlsx.db.Database;
 import io.jayms.xlsx.db.OracleDatabase;
 import io.jayms.xlsx.db.SQLServerDatabase;
+import io.jayms.xlsx.util.JSONTools;
 import lombok.Getter;
 
 public class DatabaseManager {
@@ -183,10 +186,15 @@ public class DatabaseManager {
 	}
 	
 	private int insertReport(int dbId, Report report) throws SQLException {
+		JSONObject dbFormatJson = JSONTools.ToJSON.toJSON(report.getDoubleBandFormat());
+		JSONObject titleJson = JSONTools.ToJSON.toJSON(report.getTitleStyle());
+		
 		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(INSERT_SSREPORT, Statement.RETURN_GENERATED_KEYS);
 		ps.setInt(1, dbId);
 		ps.setString(2, report.getWorkbookName());
+		ps.setString(3, titleJson.toString());
+		ps.setString(4, titleJson.toString());
 		ps.executeUpdate();
 		int id = ps.getGeneratedKeys().getInt(1);
 		ps.close();
@@ -480,7 +488,7 @@ public class DatabaseManager {
 				Collection<QueryHolder> queries = queryMap.get(repKey);
 				int repId = repKey.getId();
 				String wsName = repKey.getReportName();
-				Report report = new Report(repId, db, wsName, masterUI.getDefaultDoubleBandFormat());
+				Report report = new Report(repId, db, wsName, DBSCGraphicalUserInterface.getDefaultDoubleBandFormat(), DBSCGraphicalUserInterface.getDefaultTitleStyle());
 				for (QueryHolder qh : queries) {
 					report.getQueries().add(new Query(qh.getId(), report, qh.getWorksheetName(), qh.getQuery()));
 				}

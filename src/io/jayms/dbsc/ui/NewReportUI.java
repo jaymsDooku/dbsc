@@ -7,11 +7,13 @@ import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
+import io.jayms.dbsc.ui.comp.NumberField;
 import io.jayms.dbsc.ui.comp.colorpicker.DBSCColorPicker;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
 import io.jayms.dbsc.util.GeneralUtils;
 import io.jayms.xlsx.model.DoubleBandFormat;
+import io.jayms.xlsx.model.Fill;
 import io.jayms.xlsx.model.Style;
 import io.jayms.xlsx.model.StyleTable;
 import javafx.event.EventHandler;
@@ -21,6 +23,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ColorPicker;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
@@ -55,6 +59,19 @@ public class NewReportUI extends StandaloneUIModule {
 	private HBox colour2Ctr;
 	private Label colour2Lbl;
 	private DBSCColorPicker colour2Pkr;
+	
+	private VBox titleStyleCtr;
+	private HBox tsFontFamilyCtr;
+	private Label tsFontFamilyLbl;
+	private ComboBox<String> tsFontFamilyCmb;
+	
+	private HBox tsFontSizeCtr;
+	private Label tsFontSizeLbl;
+	private NumberField tsFontSizeTxt;
+	
+	private HBox tsFillCtr;
+	private Label tsFillLbl;
+	private ColorPicker tsFillPkr;
 	
 	private HBox newReportBtnCtr;
 	private Button newReportBtn;
@@ -173,7 +190,18 @@ public class NewReportUI extends StandaloneUIModule {
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
 		
-		Report report = new Report(selectedDB, reportName, doubleBandFormat);
+		int size = 
+		String name = 
+		
+		Font font = new Font();
+		
+		Color fillClr = tsFillPkr.getValue();
+		java.awt.Color awtFill = GeneralUtils.javafxToAwtColor(fillClr);
+		Fill fill = new Fill(awtFill);
+		
+		Style titleStyle = new Style(fill);
+		
+		Report report = new Report(selectedDB, reportName, doubleBandFormat, titleStyle);
 		
 		TreeItem<DBSCTreeItem> dbTreeItem = connTreeView.getDatabaseTreeItem(selectedDB);
 		TreeItem<DBSCTreeItem> reportTreeItem = new TreeItem<>(new ReportTreeItem(masterUI, report));

@@ -4,12 +4,11 @@ import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.DatabaseManager;
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.ui.comp.LeftPane;
+import io.jayms.dbsc.ui.comp.NumberField;
 import io.jayms.dbsc.util.ComponentFactory;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -35,7 +34,7 @@ public class CreateConnectionUI extends StandaloneUIModule {
 	
 	private HBox portCtr;
 	private Label portLbl;
-	private TextField portTxt;
+	private NumberField portTxt;
 	
 	private HBox userCtr;
 	private Label userLbl;
@@ -93,16 +92,8 @@ public class CreateConnectionUI extends StandaloneUIModule {
 	
 		hostnameTxt = new TextField();
 		hostnameTxt.setPromptText("Enter hostname");
-		portTxt = new TextField();
+		portTxt = new NumberField();
 		portTxt.setPromptText("Enter port");
-		EventHandler<KeyEvent> portTxtType = (KeyEvent e) -> {
-			try {
-				Integer.parseInt(e.getCharacter());
-			} catch (NumberFormatException ex) {
-				e.consume();
-			}
-		};
-		portTxt.addEventHandler(KeyEvent.KEY_TYPED, portTxtType);
 		
 		userTxt = new TextField();
 		userTxt.setPromptText("Enter user");

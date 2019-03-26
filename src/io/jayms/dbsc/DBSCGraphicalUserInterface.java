@@ -10,11 +10,13 @@ import io.jayms.dbsc.task.QueryTaskMaster;
 import io.jayms.dbsc.ui.CreateConnectionUI;
 import io.jayms.dbsc.ui.QueryBuilderUI;
 import io.jayms.dbsc.ui.UIModule;
-import io.jayms.dbsc.ui.comp.ActionBar;
 import io.jayms.dbsc.ui.comp.LeftPane;
 import io.jayms.dbsc.ui.comp.RightPane;
 import io.jayms.dbsc.util.DBHelper;
 import io.jayms.xlsx.model.DoubleBandFormat;
+import io.jayms.xlsx.model.Fill;
+import io.jayms.xlsx.model.Font;
+import io.jayms.xlsx.model.Style;
 import io.jayms.xlsx.model.StyleTable;
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -96,7 +98,16 @@ public class DBSCGraphicalUserInterface extends Application {
 	@Getter private	CreateConnectionUI createConnectionUI;
 	@Getter private QueryBuilderUI queryBuilderUI;
 	
-	@Getter private DoubleBandFormat defaultDoubleBandFormat;
+	@Getter private static DoubleBandFormat defaultDoubleBandFormat;
+	@Getter private static Style defaultTitleStyle;
+	
+	static {
+		defaultDoubleBandFormat = new DoubleBandFormat(StyleTable.STYLE_TABLE.getStyle(7), StyleTable.STYLE_TABLE.getStyle(8));
+		
+		java.awt.Color tc = new java.awt.Color(102, 153, 153, 255);
+		Font tf = new Font(12, "Arial", 2, true, new java.awt.Color(0, 0, 0, 255));
+		defaultTitleStyle = new Style(tf, new Fill(tc));
+	}
 	
 	/*private static DB qbTestDB;
 	
@@ -114,7 +125,6 @@ public class DBSCGraphicalUserInterface extends Application {
 	
 	@Override
 	public void start(Stage stage) throws Exception {
-		this.defaultDoubleBandFormat = new DoubleBandFormat(StyleTable.STYLE_TABLE.getStyle(7), StyleTable.STYLE_TABLE.getStyle(8));
 		
 		File dbFile = new File("localDBs.sqlite");
 		SQLiteDatabase sqliteDb = new SQLiteDatabase(dbFile);
