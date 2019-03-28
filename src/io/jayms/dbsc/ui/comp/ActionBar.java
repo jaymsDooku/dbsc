@@ -14,6 +14,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
@@ -27,6 +29,16 @@ public class ActionBar extends AbstractUIModule {
 	private Button runQueryBtn;
 	private Button stopQueryBtn;
 	private Button openQueryBuilderBtn;
+	
+	private void openQueryBuilderBtn() {
+		openQueryBuilderBtn = new Button("Open Query Builder");
+		openQueryBuilderBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent e) -> {
+			openQueryBuilder();
+		});
+	}
+	
+	private ProgressBar queryProgessBar;
+	private ProgressIndicator queryProgressIndicator;
 	
 	public ActionBar(DBSCGraphicalUserInterface masterUI) {
 		super(masterUI);
@@ -100,10 +112,8 @@ public class ActionBar extends AbstractUIModule {
 		});
 		
 		stopQueryBtn = new Button("Stop Query");
-		openQueryBuilderBtn = new Button("Open Query Builder");
-		openQueryBuilderBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent e) -> {
-			openQueryBuilder();
-		});
+		openQueryBuilderBtn();
+		
 		actionBar.getChildren().addAll(runQueryBtn, stopQueryBtn, openQueryBuilderBtn);
 	}
 	

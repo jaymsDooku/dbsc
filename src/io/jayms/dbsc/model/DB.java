@@ -14,38 +14,44 @@ public class DB {
 	@Getter private final ConnectionConfig connConfig;
 	@Getter private String serverName;
 	@Getter private String databaseName;
+	
+	@Getter @Setter private int port;
+	@Getter @Setter private String user;
+	@Getter @Setter private String pass;
+	
 	@Getter @Setter private List<Report> reports;
 	@Getter @Setter private DBType type;
 	@Getter @Setter private File sqliteDBFile;
 	@Setter private List<Table> tables = null;
 	
 	public DB(ConnectionConfig connConfig, String databaseName, DBType type) {
-		this(-1, connConfig, databaseName, type, null, null);
+		this(-1, connConfig, databaseName, type, -1, null, null, null, null);
 	}
 	
-	public DB(ConnectionConfig connConfig, String databaseName, String serverName, DBType type) {
-		this(-1, connConfig, databaseName, type, serverName, null);
+	public DB(ConnectionConfig connConfig, String databaseName, DBType type, int port, String user, String pass, String serverName) {
+		this(-1, connConfig, databaseName, type, port, user, pass, serverName, null);
 	}
 	
 	public DB(ConnectionConfig connConfig, String databaseName, File sqliteDBFile) {
-		this(-1, connConfig, databaseName, DBType.SQLITE, null, sqliteDBFile);
+		this(-1, connConfig, databaseName, DBType.SQLITE, -1, null, null, null, sqliteDBFile);
 	}
 	
 	public DB(int id, ConnectionConfig connConfig, String databaseName, DBType type) {
-		this(id, connConfig, databaseName, type, null, null);
+		this(id, connConfig, databaseName, type, -1, null, null, null, null);
 	}
 	
-	public DB(int id, ConnectionConfig connConfig, String databaseName, String serverName, DBType type) {
-		this(id, connConfig, databaseName, type, serverName, null);
+	public DB(int id, ConnectionConfig connConfig, DBType type, String databaseName, int port, String user, String pass, String serverName) {
+		this(id, connConfig, databaseName, type, port, user, pass, serverName, null);
 	}
 	
 	public DB(int id, ConnectionConfig connConfig, String databaseName, File sqliteDBFile) {
-		this(id, connConfig, databaseName, DBType.SQLITE, null, sqliteDBFile);
+		this(id, connConfig, databaseName, DBType.SQLITE, -1, null, null, null, sqliteDBFile);
 	}
 	
-	public DB(int id, ConnectionConfig connConfig, String databaseName, DBType type, String serverName, File sqliteDBFile) {
+	public DB(int id, ConnectionConfig connConfig, String databaseName, DBType type, int port, String user, String pass, String serverName, File sqliteDBFile) {
 		this.id = id;
 		this.connConfig = connConfig;
+		this.port = port;
 		this.databaseName = databaseName;
 		this.type = type;
 		if (type == DBType.SQLITE && sqliteDBFile == null) {

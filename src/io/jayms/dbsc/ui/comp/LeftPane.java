@@ -3,7 +3,7 @@ package io.jayms.dbsc.ui.comp;
 import java.util.Collection;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
-import io.jayms.dbsc.DatabaseManager;
+import io.jayms.dbsc.db.DatabaseManager;
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.ui.AbstractUIModule;
 import io.jayms.dbsc.ui.CreateConnectionUI;

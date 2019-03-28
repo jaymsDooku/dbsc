@@ -3,7 +3,7 @@ package io.jayms.dbsc.task;
 import java.io.File;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
-import io.jayms.dbsc.DatabaseManager;
+import io.jayms.dbsc.db.DatabaseManager;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;

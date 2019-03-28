@@ -22,14 +22,7 @@ public class DBSCTreeCell extends TreeCell<DBSCTreeItem> {
 	private static final Color SELECTED_TREE_ITEM = Color.rgb(242, 83, 72);
 	
 	public DBSCTreeCell() {
-		selectedProperty().addListener((ov, o, n) -> {
-			Background bg = n ? new Background(new BackgroundFill(SELECTED_TREE_ITEM, CornerRadii.EMPTY, Insets.EMPTY)) :
-				new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY));
-			Color textColor = n ? Color.WHITE : Color.BLACK;
-			
-			setBGAndColor(this.getChildren(), bg, textColor);
-			setBackground(bg);
-		});
+		super();
 	}
 	
 	private void setBGAndColor(ObservableList<Node> nodes, Background bg, Paint textClr) {
@@ -91,9 +84,17 @@ public class DBSCTreeCell extends TreeCell<DBSCTreeItem> {
 				}
 			});
 			
-			Background bg = getItem().isActive() ? new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)) :
-				new Background(new BackgroundFill(Color.GREY, CornerRadii.EMPTY, Insets.EMPTY)); 
-			setBackground(bg);
+			selectedProperty().addListener((ov, o, n) -> {
+				Background bg = n ? new Background(new BackgroundFill(SELECTED_TREE_ITEM, CornerRadii.EMPTY, Insets.EMPTY)) :
+					new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY));
+				setBackground(bg);
+				
+				System.out.println("item: " + getItem());
+				if (!DBSCTreeCell.this.getItem().isActive()) return;
+				
+				Color textColor = n ? Color.WHITE : Color.BLACK;
+				setBGAndColor(this.getChildren(), bg, textColor);
+			});
 		}
 	}
 	

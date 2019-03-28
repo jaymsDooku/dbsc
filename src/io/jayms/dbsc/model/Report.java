@@ -4,8 +4,6 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import io.jayms.xlsx.model.DoubleBandFormat;
-import io.jayms.xlsx.model.Style;
 import lombok.Getter;
 
 public class Report {
@@ -13,15 +11,15 @@ public class Report {
 	@Getter private final int id;
 	@Getter private final DB db;
 	@Getter private String workbookName;
-	@Getter private DoubleBandFormat doubleBandFormat;
-	@Getter private Style titleStyle;
+	@Getter private DoubleBandFormatHolder doubleBandFormat;
+	@Getter private StyleHolder titleStyle;
 	@Getter private List<Query> queries;
 	
-	public Report(DB db, String workbookName, DoubleBandFormat doubleBandFormat, Style titleStyle, Query... queries) {
+	public Report(DB db, String workbookName, DoubleBandFormatHolder doubleBandFormat, StyleHolder titleStyle, Query... queries) {
 		this(-1, db, workbookName, doubleBandFormat, titleStyle, queries);
 	}
 	
-	public Report(int id, DB db, String workbookName, DoubleBandFormat doubleBandFormat, Style titleStyle, Query... queries) {
+	public Report(int id, DB db, String workbookName, DoubleBandFormatHolder doubleBandFormat, StyleHolder titleStyle, Query... queries) {
 		this.id = id;
 		this.db = db;
 		this.workbookName = workbookName;

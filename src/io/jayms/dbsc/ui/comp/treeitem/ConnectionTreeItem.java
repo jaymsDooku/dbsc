@@ -5,6 +5,7 @@ import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.ui.RegisterDatabaseUI;
 import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.util.ComponentFactory;
+import io.jayms.dbsc.util.GeneralUtils;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -25,6 +26,11 @@ public class ConnectionTreeItem extends DBSCTreeItem {
 	@Override
 	public boolean hasSubItems() {
 		return !connConfig.getDbs().isEmpty();
+	}
+	
+	@Override
+	public boolean isActive() {
+		return ConnectionConfig.madeContactWith(connConfig);
 	}
 
 	@Override

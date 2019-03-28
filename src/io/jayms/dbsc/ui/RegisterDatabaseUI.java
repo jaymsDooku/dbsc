@@ -8,8 +8,10 @@ import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DBType;
 import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
+import io.jayms.dbsc.ui.comp.NumberField;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.DBTreeItem;
+import io.jayms.dbsc.util.ComponentFactory;
 import io.jayms.dbsc.util.Validation;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
@@ -22,6 +24,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.input.KeyCode;
@@ -40,42 +43,7 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 	private Scene newDBScene;
 	private VBox newDBRoot;
 	
-	private HBox newDBTitleCtr;
-	private Label newDBTitle;
-	
-	private HBox dbNameCtr;
-	private Label dbNameLbl;
-	private TextField dbNameTxt;
-	
-	private HBox dbTypeCtr;
-	private Label dbTypeLbl;
-	private ComboBox<String> dbTypeCmb;
-	
-	private HBox dbFileChooserCtr;
-	private Label dbFileChooserLbl;
-	private TextField dbFileChooserPath;
-	private Button dbFileChooserBtn;
-	private FileChooser dbFileChooser;
-	private File dbFileChosen;
-	
-	private HBox dbServerNameCtr;
-	private Label dbServerNameLbl;
-	private TextField dbServerNameTxt;
-	
-	private HBox registerDBBtnCtr;
-	private Button registerDBBtn;
-	
-	public RegisterDatabaseUI(DBSCGraphicalUserInterface masterUI, ConnectionConfig connConfig) {
-		super(masterUI);
-		this.selectedConnConfig = connConfig;
-	}
-	
-	@Override
-	public void init() {
-		super.init();
-		
-		uiStage = initStage("Register New Database");
-		
+	private void newDBScene() {
 		VBox root = new VBox();
 		HBox rootCtr = new HBox();
 		root.setAlignment(Pos.CENTER);
@@ -85,33 +53,94 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		rootCtr.getChildren().add(newDBRoot);
 		root.getChildren().add(rootCtr);
 		newDBScene = new Scene(root, 400, 300);
-		
+	}
+	
+	private HBox newDBTitleCtr;
+	private Label newDBTitle;
+	
+	private void newDBTitle() {
 		newDBTitleCtr = new HBox();
 		newDBTitleCtr.setAlignment(Pos.CENTER);
 		newDBTitle = new Label("New Database");
 		newDBTitle.setFont(Font.font("Arial", 20));
 		newDBTitle.setAlignment(Pos.CENTER);
 		newDBTitleCtr.getChildren().add(newDBTitle);
-		
+	}
+	
+	private HBox dbNameCtr;
+	private Label dbNameLbl;
+	private TextField dbNameTxt;
+	
+	private void newDBName() {
 		dbNameCtr = new HBox();
 		dbNameCtr.setAlignment(Pos.CENTER_LEFT);
-		dbTypeCtr = new HBox();
-		dbTypeCtr.setAlignment(Pos.CENTER_LEFT);
-		dbFileChooserCtr = new HBox();
-		dbFileChooserCtr.setAlignment(Pos.CENTER_LEFT);
-		dbServerNameCtr = new HBox();
-		dbServerNameCtr.setAlignment(Pos.CENTER_LEFT);
-		
 		dbNameLbl = new Label("DB Name: ");
-		dbTypeLbl = new Label("DB Type: ");
-		dbFileChooserLbl = new Label("DB File: ");
-		dbServerNameLbl = new Label("Server Name: ");
-	
 		dbNameTxt = new TextField();
 		dbNameTxt.setPromptText("Enter DB name");
+		dbNameCtr.getChildren().addAll(dbNameLbl, dbNameTxt);
+	}
+	
+	private HBox dbTypeCtr;
+	private Label dbTypeLbl;
+	private ComboBox<String> dbTypeCmb;
+	
+	private void newDBType() {
+		dbTypeCtr = new HBox();
+		dbTypeCtr.setAlignment(Pos.CENTER_LEFT);
 		
-		dbServerNameTxt = new TextField();
-		dbServerNameTxt.setPromptText("Enter server name");
+		dbTypeLbl = new Label("DB Type: ");
+		
+		dbTypeCmb = new ComboBox<>();
+		dbTypeCmb.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
+			DBType dbType = DBType.valueOf(newValue.toUpperCase());
+			
+			if (selectedDBType == dbType) return;
+			
+			ObservableList<Node> children = newDBRoot.getChildren();
+			if (dbType == DBType.SQLITE) {
+				if (children.contains(dbServerNameCtr)) {
+					children.remove(dbServerNameCtr);
+				}
+				if (children.contains(portCtr) ) {
+					newDBRoot.getChildren().remove(portCtr);
+				}
+				if (children.contains(userCtr) ) {
+					newDBRoot.getChildren().remove(userCtr);
+				}
+				if (children.contains(passCtr) ) {
+					newDBRoot.getChildren().remove(passCtr);
+				}
+				
+				children.add(3, dbFileChooserCtr);
+			} else if (selectedDBType == DBType.SQLITE){
+				if (children.contains(dbFileChooserCtr)) {
+					newDBRoot.getChildren().remove(dbFileChooserCtr);
+				}
+				
+				children.add(3, dbServerNameCtr);
+				children.add(4, portCtr);
+				children.add(5, userCtr);
+				children.add(6, passCtr);
+			}
+			
+			selectedDBType = dbType;
+		});
+		
+		dbTypeCtr.getChildren().addAll(dbTypeLbl, dbTypeCmb);
+	}
+	
+	private HBox dbFileChooserCtr;
+	private Label dbFileChooserLbl;
+	private TextField dbFileChooserPath;
+	private Button dbFileChooserBtn;
+	private FileChooser dbFileChooser;
+	private File dbFileChosen;
+	
+	private void newDBFileChooser() {
+		dbFileChooserCtr = new HBox();
+		dbFileChooserCtr.setAlignment(Pos.CENTER_LEFT);
+		
+		dbFileChooserLbl = new Label("DB File: ");
 		
 		dbFileChooser = new FileChooser();
 		dbFileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
@@ -127,24 +156,68 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 			dbFileChosen = dbFileChooser.showOpenDialog(masterUI.getStage());
 		});
 		
-		dbTypeCmb = new ComboBox<>();
-		dbTypeCmb.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
-			DBType dbType = DBType.valueOf(newValue.toUpperCase());
-			
-			ObservableList<Node> children = newDBRoot.getChildren();
-			if (dbType == DBType.SQLITE) {
-				if (children.contains(dbServerNameCtr)) {
-					children.remove(dbServerNameCtr);
-				}
-				children.add(3, dbFileChooserCtr);
-			} else {
-				if (children.contains(dbFileChooserCtr)) {
-					newDBRoot.getChildren().remove(dbFileChooserCtr);
-				}
-				children.add(3, dbServerNameCtr);
-			}
-		});
+		dbFileChooserCtr.getChildren().addAll(dbFileChooserLbl, dbFileChooserPath, dbFileChooserBtn);
+	}
+	
+	private HBox portCtr;
+	private Label portLbl;
+	private NumberField portTxt;
+	
+	private void newDBPort() {
+		portCtr = new HBox();
+		portCtr.setAlignment(Pos.CENTER_LEFT);
+		portLbl = new Label("Port: ");
+		portTxt = new NumberField();
+		portTxt.setPromptText("Enter port");
+		portCtr.getChildren().addAll(portLbl, portTxt);
+	}
+	
+	private HBox userCtr;
+	private Label userLbl;
+	private TextField userTxt;
+	
+	private void newDBUser() {
+		userCtr = new HBox();
+		userCtr.setAlignment(Pos.CENTER_LEFT);
+		userLbl = new Label("User: ");
+		userTxt = new TextField();
+		userTxt.setPromptText("Enter user");
+		userCtr.getChildren().addAll(userLbl, userTxt);
+	}
+	
+	private HBox passCtr;
+	private Label passLbl;
+	private PasswordField passTxt;
+	
+	private void newDBPass() {
+		passCtr = new HBox();
+		passCtr.setAlignment(Pos.CENTER_LEFT);
+		passLbl = new Label("Pass: ");
+		passTxt = new PasswordField();
+		passTxt.setPromptText("Enter pass");
+		passCtr.getChildren().addAll(passLbl, passTxt);
+	}
+	
+	private HBox dbServerNameCtr;
+	private Label dbServerNameLbl;
+	private TextField dbServerNameTxt;
+	
+	private void newDBServerName() {
+		dbServerNameCtr = new HBox();
+		dbServerNameCtr.setAlignment(Pos.CENTER_LEFT);
 		
+		dbServerNameLbl = new Label("Server Name: ");
+		
+		dbServerNameTxt = new TextField();
+		dbServerNameTxt.setPromptText("Enter server name");
+		
+		dbServerNameCtr.getChildren().addAll(dbServerNameLbl, dbServerNameTxt);
+	}
+	
+	private HBox registerDBBtnCtr;
+	private Button registerDBBtn;
+	
+	private void registerDBBtn() {
 		registerDBBtnCtr = new HBox();
 		registerDBBtnCtr.setAlignment(Pos.CENTER);
 		registerDBBtn = new Button("Register Database");
@@ -153,11 +226,32 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		};
 		registerDBBtn.addEventHandler(MouseEvent.MOUSE_CLICKED, registerBtnPress);
 		registerDBBtnCtr.getChildren().add(registerDBBtn);
+	}
+	
+	public RegisterDatabaseUI(DBSCGraphicalUserInterface masterUI, ConnectionConfig connConfig) {
+		super(masterUI);
+		this.selectedConnConfig = connConfig;
+	}
+	
+	@Override
+	public void init() {
+		super.init();
 		
-		dbNameCtr.getChildren().addAll(dbNameLbl, dbNameTxt);
-		dbTypeCtr.getChildren().addAll(dbTypeLbl, dbTypeCmb);
-		dbFileChooserCtr.getChildren().addAll(dbFileChooserLbl, dbFileChooserPath, dbFileChooserBtn);
-		dbServerNameCtr.getChildren().addAll(dbServerNameLbl, dbServerNameTxt);
+		uiStage = initStage("Register New Database");
+		
+		newDBScene();
+		
+		newDBTitle();
+		
+		newDBName();
+		newDBType();
+		newDBFileChooser();
+		newDBServerName();
+		newDBPort();
+		newDBUser();
+		newDBPass();
+		
+		registerDBBtn();
 		
 		newDBRoot.getChildren().addAll(newDBTitleCtr,
 				dbNameCtr,
@@ -175,6 +269,8 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		uiStage.setScene(newDBScene);
 	}
 	
+	private DBType selectedDBType;
+	
 	@Override
 	public void show() {
 		super.show();
@@ -186,6 +282,7 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		}
 		if (!dbTypeCmb.getItems().isEmpty()) {
 			dbTypeCmb.getSelectionModel().select(0);
+			selectedDBType = DBType.valueOf(dbTypeCmb.getSelectionModel().getSelectedItem().toUpperCase());
 		}
 	}
 	
@@ -229,7 +326,23 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 				Validation.alert("You need to choose a server name!");
 				return;
 			}
-			db = new DB(selectedConnConfig, dbName, serverName, dbType);
+			int port = 0;
+			boolean invalidPort = false;
+			try {
+				port = portTxt.getValue();
+				if (port < 0 || port > 65535) {
+					invalidPort = true;
+				}
+			} catch (NumberFormatException e) {
+				invalidPort = true;
+			}
+			if (invalidPort) {
+				Validation.alert("Port needs to be an integer between 0 - 65535.");
+				return;
+			}
+			String user = userTxt.getText();
+			String pass = passTxt.getText();
+			db = new DB(selectedConnConfig, dbName, dbType, port, user, pass, serverName);
 		} else {
 			db = new DB(selectedConnConfig, dbName, dbType);
 		}

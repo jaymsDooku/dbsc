@@ -1,4 +1,4 @@
-package io.jayms.dbsc;
+package io.jayms.dbsc.db;
 
 import java.io.File;
 import java.sql.Connection;
@@ -18,11 +18,16 @@ import org.json.JSONObject;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
+import io.jayms.dbsc.DBSCGraphicalUserInterface;
+import io.jayms.dbsc.SQLiteDatabase;
 import io.jayms.dbsc.model.ConnectionConfig;
+import io.jayms.dbsc.model.ConnectionConfig.CreationResult.Result;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DBType;
+import io.jayms.dbsc.model.DoubleBandFormatHolder;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
+import io.jayms.dbsc.model.StyleHolder;
 import io.jayms.xlsx.db.Database;
 import io.jayms.xlsx.db.OracleDatabase;
 import io.jayms.xlsx.db.SQLServerDatabase;
@@ -40,17 +45,14 @@ public class DatabaseManager {
 	private static final String CREATE_CONNECTION_TBL = "CREATE TABLE CONNECTION ("
 			 + "ConnectionID INTEGER PRIMARY KEY AUTOINCREMENT, "
 			 + "Hostname TEXT NOT NULL, "
-			 + "Port INTEGER NOT NULL, "
-			 + "Username TEXT NOT NULL, "
-			 + "Password TEXT NOT NULL, "
-			 + "UNIQUE(Hostname, Port) "
+			 + "UNIQUE(Hostname) "
 			 + "ON CONFLICT IGNORE"
 			 + ")";
-	private static final String INSERT_CONNECTION = "INSERT INTO CONNECTION(Hostname, Port, Username, Password) VALUES (?, ?, ?, ?)";
+	private static final String INSERT_CONNECTION = "INSERT INTO CONNECTION(Hostname) VALUES (?)";
 	private static final String SELECT_CONNECTIONS = "SELECT * FROM CONNECTION LEFT JOIN DBS USING(ConnectionID) LEFT JOIN SSREPORT USING (DBID) LEFT JOIN SSREPORTQUERIES USING(ReportID)LEFT JOIN QUERIES USING (QueryID)";
 	private static final String DELETE_CONNECTION = "DELETE FROM CONNECTION WHERE ConnectionID = ?";
 	private static final String SELECT_CONNECTION = "SELECT * FROM CONNECTION WHERE ConnectionID = ?";
-	private static final String UPDATE_CONNECTION = "UPDATE CONNECTION SET Hostname = ?, Port = ?, Username = ?, Password = ? WHERE ConnectionID = ?";
+	private static final String UPDATE_CONNECTION = "UPDATE CONNECTION SET Hostname = ? WHERE ConnectionID = ?";
 	
 	private static final String DB_TBL = "DBS";
 	private static final String CREATE_DB_TBL = "CREATE TABLE DBS ("
@@ -58,12 +60,15 @@ public class DatabaseManager {
 			+ "ConnectionID INTEGER NOT NULL, "
 			+ "DatabaseName TEXT NOT NULL, "
 			+ "DatabaseType TEXT NOT NULL, "
+			+ "Port INTEGER NOT NULL DEFAULT -1, "
+			+ "Username TEXT DEFAULT NULL, "
+			+ "Password TEXT DEFAULT NULL, "
 			+ "DBFilePath TEXT DEFAULT NULL, "
 			+ "ServerName TEXT DEFAULT NULL"
 			+ ")";
 	private static final String INSERT_DB = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType) VALUES (?, ?, ?)";
 	private static final String INSERT_DB_WITH_FILE = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, DBFilePath) VALUES (?, ?, ?, ?)";
-	private static final String INSERT_DB_WITH_SERVERNAME = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, ServerName) VALUES (?, ?, ?, ?)";
+	private static final String INSERT_DB_WITH_SERVERNAME = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, Port, Username, Password, ServerName) VALUES (?, ?, ?, ?, ?, ?, ?)";
 	private static final String SELECT_DB = "SELECT DBID, DatabaseName FROM DBS WHERE ConnectionID = ?";
 	private static final String DELETE_DB = "DELETE FROM DBS WHERE DBID = ?";
 	
@@ -171,8 +176,11 @@ public class DatabaseManager {
 			ps = conn.prepareStatement(INSERT_DB_WITH_SERVERNAME, Statement.RETURN_GENERATED_KEYS);
 			ps.setInt(1, connId);
 			ps.setString(2, dbItem.getDatabaseName());
-			ps.setString(3, dbItem.getType().toString());
-			ps.setString(4, dbItem.getServerName());
+			ps.setInt(3, dbItem.getPort());
+			ps.setString(4, dbItem.getUser());
+			ps.setString(5, dbItem.getPass());
+			ps.setString(6, dbItem.getType().toString());
+			ps.setString(7, dbItem.getServerName());
 		} else {
 			ps = conn.prepareStatement(INSERT_DB, Statement.RETURN_GENERATED_KEYS);
 			ps.setInt(1, connId);
@@ -186,14 +194,14 @@ public class DatabaseManager {
 	}
 	
 	private int insertReport(int dbId, Report report) throws SQLException {
-		JSONObject dbFormatJson = JSONTools.ToJSON.toJSON(report.getDoubleBandFormat());
-		JSONObject titleJson = JSONTools.ToJSON.toJSON(report.getTitleStyle());
+		JSONObject dbFormatJson = DoubleBandFormatHolder.toJSON(report.getDoubleBandFormat());
+		JSONObject titleJson = StyleHolder.toJSON(report.getTitleStyle());
 		
 		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(INSERT_SSREPORT, Statement.RETURN_GENERATED_KEYS);
 		ps.setInt(1, dbId);
 		ps.setString(2, report.getWorkbookName());
-		ps.setString(3, titleJson.toString());
+		ps.setString(3, dbFormatJson.toString());
 		ps.setString(4, titleJson.toString());
 		ps.executeUpdate();
 		int id = ps.getGeneratedKeys().getInt(1);
@@ -262,6 +270,16 @@ public class DatabaseManager {
 		ps.close();
 	}
 	
+	public ConnectionConfig.CreationResult createConnectionConfig(String host) {
+		if (connConfigCache.containsKey(host)) return new ConnectionConfig.CreationResult(Result.ALREADY_EXIST, null);
+		ConnectionConfig cc = new ConnectionConfig(masterUI, host);
+		
+		if (!ConnectionConfig.madeContactWith(cc)) return new ConnectionConfig.CreationResult(Result.CANT_CONTACT, null);
+		
+		connConfigCache.put(host, cc);
+		return new ConnectionConfig.CreationResult(Result.SUCCESS, cc);
+	}
+	
 	public void store(ConnectionConfig cc) {
 		Connection conn = db.getConnection();
 		try {
@@ -272,20 +290,11 @@ public class DatabaseManager {
 				ps = conn.prepareStatement(INSERT_CONNECTION, Statement.RETURN_GENERATED_KEYS);
 			} else {
 				ps = conn.prepareStatement(UPDATE_CONNECTION);
-				ps.setInt(5, connId);
+				ps.setInt(2, connId);
 			}
 			String host = cc.getHost();
-			int port = cc.getPort();
-			String user = cc.getUser();
-			String pass = cc.getPass();
 			System.out.println("host: " + host);
-			System.out.println("port: " + port);
-			System.out.println("user: " + user);
-			System.out.println("pass: " + pass);
 			ps.setString(1, host);
-			ps.setInt(2, port);
-			ps.setString(3, user);
-			ps.setString(4, pass); // TODO: Encryption
 			
 			int affectedRows = ps.executeUpdate();
 			System.out.println("affectedRows: " + affectedRows);
@@ -362,9 +371,6 @@ public class DatabaseManager {
 			while (rs.next()) {
 				int nextId = rs.getInt("ConnectionID");
 				String host = rs.getString("Hostname");
-				int port = rs.getInt("Port");
-				String user = rs.getString("Username");
-				String pass = rs.getString("Password");
 				
 				if (id != nextId) {
 					/*ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
@@ -374,11 +380,8 @@ public class DatabaseManager {
 				}
 				
 				System.out.println("host: " + host);
-				System.out.println("port: " + port);
-				System.out.println("user: " + user);
-				System.out.println("pass: " + pass);
 				
-				if (host == null || port == 0 || user == null || pass == null) {
+				if (host == null) {
 					System.out.println("Failed to load connection configuration with ID: " + id);
 					continue;
 				}
@@ -412,13 +415,17 @@ public class DatabaseManager {
 					continue;
 				}
 				
+				int port = rs.getInt("Port");
+				String user = rs.getString("Username");
+				String pass = rs.getString("Password");
+				
 				DBType dbType = DBType.valueOf(dbTypeStr.toUpperCase());
 				
 				if (dbFilePath == null && dbType == DBType.SQLITE) {
 					continue;
 				}
 				
-				if (serverName == null && (dbType == DBType.SQL_SERVER || dbType == DBType.ORACLE)) {
+				if ((serverName == null || port == -1 || user == null || pass == null) && (dbType == DBType.SQL_SERVER || dbType == DBType.ORACLE)) {
 					continue;
 				}
 				
@@ -433,7 +440,7 @@ public class DatabaseManager {
 					/*if (!dbFile.exists() && dbType == DBType.SQLITE) {
 						continue;
 					}*/
-					dbVal = new DBValue(dbId, dbType, queries, dbFile, serverName);
+					dbVal = new DBValue(dbId, dbType, queries, dbFile, serverName, port, user, pass);
 				}
 				if (wbName != null) {
 					ReportKey key = queries.keySet().stream().filter(k -> k.getReportName().equals(wbName)).findFirst().orElse(null);
@@ -448,7 +455,7 @@ public class DatabaseManager {
 				}
 				dbMap.put(dbName, dbVal);
 				
-				ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
+				ConnectionConfig cc = constructConnectionConfig(id, host, dbMap);
 				connConfigCache.put(host, cc);
 			}
 			rs.close();
@@ -459,29 +466,33 @@ public class DatabaseManager {
 		return true;
 	}
 	
-	private ConnectionConfig constructConnectionConfig(int id, String host, int port, String user, String pass, Map<String, DBValue> dbMap) {
-		ConnectionConfig cc = new ConnectionConfig(this.masterUI, id, host, port, user, pass);
+	private ConnectionConfig constructConnectionConfig(int id, String host, Map<String, DBValue> dbMap) {
+		ConnectionConfig cc = new ConnectionConfig(this.masterUI, id, host);
 		for (String dbName : dbMap.keySet()) {
 			DBValue dbVal = dbMap.get(dbName);
 			List<Report> reports = new ArrayList<>();
 			DBType dbType = dbVal.getDbType();
 			
-			File sqliteDBFile = dbVal.getSqliteDBFile();
-			String serverName = dbVal.getServerName();
-			
 			DB db;
 			if (dbType == DBType.SQLITE) {
+				File sqliteDBFile = dbVal.getSqliteDBFile();
+				
 				if (sqliteDBFile == null) {
 					System.out.println("No SQLite database name.");
 					return null;
 				}
 				db = new DB(cc, dbName, sqliteDBFile);
 			} else {
+				int port = dbVal.getPort();
+				String serverName = dbVal.getServerName();
+				String user = dbVal.getUser();
+				String pass = dbVal.getPass();
+				
 				if (serverName == null) {
 					System.out.println("No server name to connect to SQL Server or Oracle.");
 					return null;
 				}
-				db = new DB(cc, dbName, serverName, dbType);
+				db = new DB(cc, dbName, dbType, port, user, pass, serverName);
 			}
 			Map<ReportKey, List<QueryHolder>> queryMap = dbVal.getQueries();
 			for (ReportKey repKey : queryMap.keySet()) {
@@ -525,10 +536,10 @@ public class DatabaseManager {
 				result = new SQLiteDatabase(db.getSqliteDBFile());
 				break;
 			case SQL_SERVER:
-				result = new SQLServerDatabase(db.getServerName(), cc.getHost(), Integer.toString(cc.getPort()), db.getDatabaseName(), cc.getUser(), cc.getPass());
+				result = new SQLServerDatabase(db.getServerName(), cc.getHost(), Integer.toString(db.getPort()), db.getDatabaseName(), db.getUser(), db.getPass());
 				break;
 			case ORACLE:
-				result = new OracleDatabase(db.getServerName(), cc.getHost(), Integer.toString(cc.getPort()), db.getDatabaseName(), cc.getUser(), cc.getPass());
+				result = new OracleDatabase(db.getServerName(), cc.getHost(), Integer.toString(db.getPort()), db.getDatabaseName(), db.getUser(), db.getPass());
 				break;
 			default:
 				break;
@@ -626,13 +637,20 @@ public class DatabaseManager {
 		@Getter private DBType dbType;
 		@Getter private Map<ReportKey, List<QueryHolder>> queries;
 		@Getter private File sqliteDBFile;
+		
+		@Getter private int port;
+		@Getter private String user;
+		@Getter private String pass;
 		@Getter private String serverName;
 		
-		public DBValue(int id, DBType dbType, Map<ReportKey, List<QueryHolder>> queries, File sqliteDBFile, String serverName) {
+		public DBValue(int id, DBType dbType, Map<ReportKey, List<QueryHolder>> queries, File sqliteDBFile, String serverName, int port, String user, String pass) {
 			this.dbType = dbType;
 			this.queries = queries;
 			this.sqliteDBFile = sqliteDBFile;
 			this.serverName = serverName;
+			this.port = port;
+			this.user = user;
+			this.pass = pass;
 		}
 	}
 	

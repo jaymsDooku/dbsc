@@ -34,10 +34,10 @@ public class DBSCColorPalette extends ColorPalette {
 			Constructor<?> colorSquareConstructor = colorSquareClazz.getDeclaredConstructor(ColorPalette.class, Color.class, int.class);
 			colorSquareConstructor.setAccessible(true);
 			
-			Style[] styles = StyleTable.STYLE_TABLE.getStyles();
-			for (int i = 0; i < styles.length; i++) {
-				Style s = styles[i];
-				Node square = (Node) colorSquareConstructor.newInstance(this, GeneralUtils.awtToJavaFXColor(s.getFill().getColor()), i);
+			java.awt.Color[] styleColors = StyleTable.COLORS;
+			for (int i = 0; i < styleColors.length; i++) {
+				java.awt.Color s = styleColors[i];
+				Node square = (Node) colorSquareConstructor.newInstance(this, GeneralUtils.awtToJavaFXColor(s), i);
 				squares.add(square);
 			}
 			

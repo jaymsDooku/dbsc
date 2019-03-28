@@ -13,10 +13,5 @@ public final class ComponentFactory {
 		btn.setOnMouseClicked(e);
 		return btn;
 	}
-	
-	public static Alert error(String msg) {
-		Alert alert = new Alert(AlertType.ERROR, msg);
-		alert.showAndWait();
-		return alert;
-	}
+
 }

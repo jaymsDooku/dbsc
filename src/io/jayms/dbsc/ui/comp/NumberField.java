@@ -17,7 +17,7 @@ public class NumberField extends TextField {
 		this.addEventHandler(KeyEvent.KEY_TYPED, portTxtType);
 	}
 
-	public int getValue() {
+	public int getValue() throws NumberFormatException {
 		return Integer.parseInt(this.getText());
 	}
 	

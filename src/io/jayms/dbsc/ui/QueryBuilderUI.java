@@ -1,6 +1,8 @@
 package io.jayms.dbsc.ui;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -36,10 +38,11 @@ import javafx.stage.Stage;
 
 public class QueryBuilderUI extends StandaloneUIModule {
 
-	private static final long JOIN_HOLD_DURATION = 1500;
+	private static final long JOIN_HOLD_DURATION = 1050;
 	
 	private static final Background UNSELECTED_BG = new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY));
 	private static final Background SELECTED_BG = new Background(new BackgroundFill(Color.GOLD, CornerRadii.EMPTY, Insets.EMPTY));
+	private static final Background JOINED_BG = new Background(new BackgroundFill(Color.LIME, CornerRadii.EMPTY, Insets.EMPTY));
 	
 	private Scene queryBuilderScene;
 	
@@ -55,6 +58,8 @@ public class QueryBuilderUI extends StandaloneUIModule {
 	private QueryBuilderContext queryBuilderContext;
 	
 	private final DB db;
+	
+	private Set<Table> addedTables = new HashSet<>();
 	
 	public QueryBuilderUI(DBSCGraphicalUserInterface masterUI, DB db) {
 		super(masterUI);
@@ -82,6 +87,12 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			List<Table> tables = db.getTables();
 			Table table = tables.stream().filter(t -> t.getName().equals(tableName)).findFirst().orElse(null);
 			
+			if (addedTables.contains(table)) {
+				return;
+			}
+			
+			addedTables.add(table);
+			
 			DraggableNode draggable;
 			VBox tableCtr = new VBox();
 			tableCtr.setAlignment(Pos.CENTER);
@@ -92,7 +103,6 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			tableHeaderCtr.setAlignment(Pos.CENTER);
 			tableHeaderCtr.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 			Label tableLbl = new Label(tableName);
-			//tableLbl.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 			tableHeaderCtr.getChildren().addAll(tableLbl);
 			
 			HBox tableColCtr = new HBox();
@@ -101,6 +111,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			List<Column> columns = table.getColumns();
 			columns.stream().forEach(c -> {
 				HBox colCtr = new HBox();
+				colCtr.setAlignment(Pos.CENTER);
 				Label colLbl = new Label(c.getName());
 				colLbl.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 				colLbl.onMousePressedProperty().set((colEv) -> {
@@ -113,7 +124,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 						public void run() {
 							if (System.currentTimeMillis() > activateJoinTime) {
 								Platform.runLater(() -> {
-									
+									colLbl.setBackground(JOINED_BG);
 								});
 							}
 						}
@@ -134,7 +145,7 @@ public class QueryBuilderUI extends StandaloneUIModule {
 						fieldsToSelect.put(table, c);
 					}
 				});
-				Circle colJoinIndicator = new Circle(2, Color.RED);
+				Circle colJoinIndicator = new Circle(4, Color.RED);
 				colCtr.getChildren().addAll(colLbl, colJoinIndicator);
 				tableColCtr.getChildren().add(colCtr);
 			});

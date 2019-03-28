@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
+import io.jayms.dbsc.util.GeneralUtils;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,24 +12,18 @@ public class ConnectionConfig {
 
 	@Getter @Setter private int id;
 	@Getter @Setter private String host;
-	@Getter @Setter private int port;
-	@Getter @Setter private String user;
-	@Getter @Setter private String pass;
 	@Getter @Setter private List<DB> dbs;
 	
 	@Getter private final DBSCGraphicalUserInterface masterUI;
 	
-	public ConnectionConfig(DBSCGraphicalUserInterface masterUI, String host, int port, String user, String pass) {
-		this(masterUI, -1, host, port, user, pass);
+	public ConnectionConfig(DBSCGraphicalUserInterface masterUI, String host) {
+		this(masterUI, -1, host);
 	}
 	
-	public ConnectionConfig(DBSCGraphicalUserInterface masterUI, int id, String host, int port, String user, String pass) {
+	public ConnectionConfig(DBSCGraphicalUserInterface masterUI, int id, String host) {
 		this.masterUI = masterUI;
 		this.id = id;
 		this.host = host;
-		this.port = port;
-		this.user = user;
-		this.pass = pass;
 		this.dbs = new ArrayList<>();
 	}
 	
@@ -41,9 +36,6 @@ public class ConnectionConfig {
 		String s = "{" +
 				"Id = " + getId() + "|" +
 				"Hostname = " + getHost() + "|" +
-				"Port = " + getPort() + "|" +
-				"User = " + getUser() + "|" +
-				"Pass = " + getPass() + "|" +
 				"DBS = [";
 		for (int i = 0; i < dbs.size(); i++) {
 			DB db = dbs.get(i);
@@ -54,5 +46,26 @@ public class ConnectionConfig {
 		}
 		s += "]}";
 		return s;
+	}
+	
+	public static boolean madeContactWith(ConnectionConfig cc) {
+		if (cc.isLocalHost()) return true;
+		return GeneralUtils.ping(cc.getHost(), 7);
+	}
+	
+	public static class CreationResult {
+		
+		public enum Result {
+			SUCCESS, ALREADY_EXIST, CANT_CONTACT;
+		}
+		
+		@Getter private Result result;
+		@Getter private ConnectionConfig connectionConfig;
+		
+		public CreationResult(Result result, ConnectionConfig connectionConfig) {
+			this.result = result;
+			this.connectionConfig = connectionConfig;
+		}
+		
 	}
 }

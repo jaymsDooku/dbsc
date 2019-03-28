@@ -33,6 +33,10 @@ public class QueryTaskMaster {
 		return id;
 	}
 	
+	public QueryTask getQueryTask(int taskId) {
+		return queryTasks.get(taskId);
+	}
+	
 	public void stopQuery(int taskId) {
 		if (!queryTasks.containsKey(taskId)) {
 			return;

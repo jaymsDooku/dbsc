@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import io.jayms.dbsc.DatabaseManager;
+import io.jayms.dbsc.db.DatabaseManager;
 import io.jayms.dbsc.model.Column;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DataType;

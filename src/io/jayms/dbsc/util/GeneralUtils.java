@@ -1,5 +1,10 @@
 package io.jayms.dbsc.util;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+
 import javafx.scene.paint.Color;
 
 public class GeneralUtils {
@@ -20,5 +25,25 @@ public class GeneralUtils {
                 (float) fx.getBlue(),
                 (float) fx.getOpacity());
 		return awtColor;
+	}
+	
+	public static boolean ping(String address, int port) {
+		SocketAddress sockAddr = new InetSocketAddress(address, port);
+		
+		Socket socket = new Socket();
+		boolean online = true;
+		
+		try {
+			socket.connect(sockAddr, 1000);
+		} catch (IOException ioException) {
+			online = false;
+		} finally {
+			try {
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return online;
 	}
 }

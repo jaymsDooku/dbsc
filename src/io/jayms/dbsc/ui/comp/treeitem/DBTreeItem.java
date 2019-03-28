@@ -29,6 +29,8 @@ public class DBTreeItem extends DBSCTreeItem {
 	@Override
 	public boolean isActive() {
 		boolean isActive = true;
+		System.out.println(db.getType());
+		System.out.println(db.getSqliteDBFile());
 		if (db.getType() == DBType.SQLITE) {
 			isActive = db.getSqliteDBFile().exists();
 		}
