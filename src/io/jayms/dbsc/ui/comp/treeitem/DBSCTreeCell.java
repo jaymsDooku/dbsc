@@ -78,7 +78,6 @@ public class DBSCTreeCell extends TreeCell<DBSCTreeItem> {
 			Node arrow = ((StackPane) disclosureNode).getChildren().stream().filter(c -> c.getStyleClass().contains("arrow")).findFirst().orElse(null);
 			arrow.addEventFilter(MouseEvent.MOUSE_PRESSED, (e) -> {
 				if (!getItem().isActive()) {
-					System.out.println("hello");
 					arrow.setRotate(0);
 					e.consume();
 				}

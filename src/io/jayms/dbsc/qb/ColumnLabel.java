@@ -18,6 +18,7 @@ import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import lombok.Getter;
 
@@ -41,6 +42,7 @@ public class ColumnLabel extends Label {
 		this.table = table;
 		this.column = column;
 		
+		this.setMinWidth(Region.USE_PREF_SIZE);
 		this.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 		
 		QueryBuilderContext queryBuilderContext = qbUI.getQueryBuilderContext();

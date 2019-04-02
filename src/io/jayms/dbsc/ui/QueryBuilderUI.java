@@ -25,7 +25,7 @@ import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -103,17 +103,16 @@ public class QueryBuilderUI extends StandaloneUIModule {
 			List<Column> columns = table.getColumns();
 			columns.stream().forEach(c -> {
 				HBox colCtr = new HBox();
+				//colCtr.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 				colCtr.setAlignment(Pos.CENTER);
 				ColumnLabel colLbl = new ColumnLabel(this, table, c);
-				Pane colJoinIndicator = new Pane();
+				StackPane colJoinIndicator = new StackPane();
 				colJoinIndicator.setBackground(ColumnLabel.SELECTED_BG);
-				colJoinIndicator.prefHeightProperty().bind(colCtr.heightProperty());
-				colJoinIndicator.prefWidthProperty().bind(colCtr.heightProperty());
-				/*Circle colJoinCircle = new Circle();
+				Circle colJoinCircle = new Circle(5);
 				colJoinCircle.setFill(Color.RED);
-				colJoinCircle.radiusProperty().bind(colJoinIndicator.prefWidthProperty().divide(2));*/
+				colJoinIndicator.getChildren().add(colJoinCircle);
 				colCtr.getChildren().addAll(colLbl, colJoinIndicator);
-				tableColCtr.getChildren().add(colCtr);
+				tableColCtr.getChildren().addAll(colCtr);
 			});
 			
 			tableCtr.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
