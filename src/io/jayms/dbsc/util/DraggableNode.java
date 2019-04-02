@@ -1,9 +1,11 @@
 package io.jayms.dbsc.util;
 
 import java.awt.Rectangle;
+import java.util.function.Consumer;
 
 import javafx.scene.Cursor;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.layout.Pane;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,13 +30,20 @@ public class DraggableNode extends Pane {
     @Getter @Setter private Node view;
     @Getter @Setter private boolean dragging = false;
     @Getter @Setter private boolean moveToFront = true;
+    
+    @Getter private Consumer<Node> onDrag;
 
     public DraggableNode() {
         init();
     }
-
+    
     public DraggableNode(Node view) {
+    	this(view, null);
+    }
+
+    public DraggableNode(Node view, Consumer<Node> onDrag) {
         this.view = view;
+        this.onDrag = onDrag;
 
         getChildren().add(view);
         init();
@@ -101,6 +110,8 @@ public class DraggableNode extends Pane {
             // again set current Mouse x AND y position
             mousex = e.getSceneX();
             mousey = e.getSceneY();
+            
+            applyOnDrag(this);
 
             e.consume();
         });
@@ -116,6 +127,15 @@ public class DraggableNode extends Pane {
         onMouseExitedProperty().set((e) -> {
         	setCursor(Cursor.OPEN_HAND);
         });
+    }
+    
+    private void applyOnDrag(Parent p) {
+    	p.getChildrenUnmodifiable().stream().forEach(n -> {
+    		if (n instanceof Parent) {
+    			applyOnDrag((Parent) n);
+    		}
+    		onDrag.accept(n);
+    	});
     }
     
     private BoundsResult inBounds(int newX, int newY) {

@@ -34,8 +34,6 @@ public class ColumnLabel extends Label {
 	@Getter private Table table;
 	@Getter private Column column;
 	
-	private TimerTask holdTask;
-	
 	public ColumnLabel(QueryBuilderUI qbUI, Table table, Column column) {
 		super(column.getName());
 		this.qbUI = qbUI;
@@ -56,25 +54,6 @@ public class ColumnLabel extends Label {
 				this.setBackground(SELECTED_BG);
 				fieldsToSelect.put(table, column);
 			}
-			
-			long timeOfPress = System.currentTimeMillis();
-			long activateJoinTime = timeOfPress + JOIN_HOLD_DURATION;
-			holdTask = new TimerTask() {
-
-				@Override
-				public void run() {
-					if (System.currentTimeMillis() > activateJoinTime) {
-						Platform.runLater(() -> {
-							ColumnLabel.this.setBackground(JOINED_BG);
-						});
-					}
-				}
-				
-			};
-			qbUI.getTimer().schedule(holdTask, 0L, 1L);
-		});
-		this.onMouseReleasedProperty().set((colEv) -> {
-			holdTask.cancel();
 		});
 	}
 	

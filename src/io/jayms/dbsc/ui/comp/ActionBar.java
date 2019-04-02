@@ -6,6 +6,7 @@ import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
+import io.jayms.dbsc.task.QueryTask;
 import io.jayms.dbsc.task.QueryTaskMaster;
 import io.jayms.dbsc.ui.AbstractUIModule;
 import io.jayms.dbsc.ui.QueryBuilderUI;
@@ -37,8 +38,8 @@ public class ActionBar extends AbstractUIModule {
 		});
 	}
 	
-	private ProgressBar queryProgessBar;
-	private ProgressIndicator queryProgressIndicator;
+	@Getter private ProgressBar queryProgressBar = new ProgressBar();
+	@Getter private ProgressIndicator queryProgressIndicator = new ProgressIndicator();
 	
 	public ActionBar(DBSCGraphicalUserInterface masterUI) {
 		super(masterUI);
@@ -60,14 +61,10 @@ public class ActionBar extends AbstractUIModule {
 			alert.showAndWait();
 			return;
 		}
-		System.out.println("tabUserData: " + tabUserData);
 		
 		Query query = (Query) tabUserData;
-		System.out.println("query: " + query);
 		Report report = query.getReport();
-		System.out.println("report: " + report);
 		DB selectedDB = report.getDb();
-		System.out.println("selected db: " + selectedDB);
 		QueryBuilderUI queryBuilderUI = new QueryBuilderUI(masterUI, selectedDB);
 		queryBuilderUI.show();
 	}
@@ -93,9 +90,7 @@ public class ActionBar extends AbstractUIModule {
 				alert.showAndWait();
 				return;
 			}
-			String title = curTab.getText();
 			Object tabDataObj = curTab.getUserData();
-			System.out.println("tabDataObj: " + tabDataObj);
 			if (tabDataObj == null || !(tabDataObj instanceof Query)) {
 				System.out.println("No tab editor data held");
 				return;
@@ -104,16 +99,19 @@ public class ActionBar extends AbstractUIModule {
 			
 			TextField tabTextField = (TextField) curTab.getContent();
 			String tabQueryText = tabTextField.getText();
-			System.out.println("text: " + tabQueryText);
 			query.setQuery(tabQueryText);
 			
 			QueryTaskMaster taskMaster = masterUI.getQueryTaskMaster();
-			taskMaster.startQuery(query, chosenFile);
+			int queryTaskId = taskMaster.startQuery(query, chosenFile);
+			QueryTask queryTask = taskMaster.getQueryTask(queryTaskId);
+			
+			queryProgressBar.progressProperty().bind(queryTask.progressProperty());
+			queryProgressIndicator.progressProperty().bind(queryTask.progressProperty());
+			actionBar.getChildren().addAll(queryProgressBar, queryProgressIndicator);
 		});
 		
 		stopQueryBtn = new Button("Stop Query");
 		openQueryBuilderBtn();
-		
 		actionBar.getChildren().addAll(runQueryBtn, stopQueryBtn, openQueryBuilderBtn);
 	}
 	

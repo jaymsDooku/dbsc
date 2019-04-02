@@ -144,7 +144,7 @@ public class DBSCGraphicalUserInterface extends Application {
 		}
 		
 		dbHelper = new DBHelper(databaseManager);
-		queryTaskMaster = new QueryTaskMaster(this, 3);
+		queryTaskMaster = new QueryTaskMaster(this);
 		
 		this.stage = stage;
 		stage.setTitle("DBSC");

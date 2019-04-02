@@ -40,7 +40,7 @@ public class DB {
 		this(id, connConfig, databaseName, type, -1, null, null, null, null);
 	}
 	
-	public DB(int id, ConnectionConfig connConfig, DBType type, String databaseName, int port, String user, String pass, String serverName) {
+	public DB(int id, ConnectionConfig connConfig, String databaseName, DBType type, int port, String user, String pass, String serverName) {
 		this(id, connConfig, databaseName, type, port, user, pass, serverName, null);
 	}
 	

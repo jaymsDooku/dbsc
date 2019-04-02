@@ -7,7 +7,7 @@ import lombok.Getter;
 
 public abstract class AbstractUIModule implements UIModule {
 
-	protected final DBSCGraphicalUserInterface masterUI;
+	@Getter protected final DBSCGraphicalUserInterface masterUI;
 	
 	@Getter protected boolean initialized = false;
 	

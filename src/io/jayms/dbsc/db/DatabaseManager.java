@@ -31,7 +31,6 @@ import io.jayms.dbsc.model.StyleHolder;
 import io.jayms.xlsx.db.Database;
 import io.jayms.xlsx.db.OracleDatabase;
 import io.jayms.xlsx.db.SQLServerDatabase;
-import io.jayms.xlsx.util.JSONTools;
 import lombok.Getter;
 
 public class DatabaseManager {
@@ -367,14 +366,15 @@ public class DatabaseManager {
 			System.out.println("Retrieving cc records...");
 			int id = -1;
 			
+			Map<Integer, Map<String, DBValue>> connMap = new HashMap<>();
 			Map<String, DBValue> dbMap = new HashMap<>();
 			while (rs.next()) {
 				int nextId = rs.getInt("ConnectionID");
 				String host = rs.getString("Hostname");
 				
 				if (id != nextId) {
-					/*ConnectionConfig cc = constructConnectionConfig(id, host, port, user, pass, dbMap);
-					connConfigCache.put(host, cc);*/
+					ConnectionConfig cc = constructConnectionConfig(id == -1 ? nextId : id, host, dbMap);
+					connConfigCache.put(host, cc);
 					id = nextId;
 					dbMap.clear();
 				}
@@ -474,6 +474,8 @@ public class DatabaseManager {
 			DBType dbType = dbVal.getDbType();
 			
 			DB db;
+			int dbId = dbVal.getId();
+			System.out.println("dbId2: " + dbId);
 			if (dbType == DBType.SQLITE) {
 				File sqliteDBFile = dbVal.getSqliteDBFile();
 				
@@ -481,7 +483,7 @@ public class DatabaseManager {
 					System.out.println("No SQLite database name.");
 					return null;
 				}
-				db = new DB(cc, dbName, sqliteDBFile);
+				db = new DB(dbId, cc, dbName, sqliteDBFile);
 			} else {
 				int port = dbVal.getPort();
 				String serverName = dbVal.getServerName();
@@ -492,7 +494,7 @@ public class DatabaseManager {
 					System.out.println("No server name to connect to SQL Server or Oracle.");
 					return null;
 				}
-				db = new DB(cc, dbName, dbType, port, user, pass, serverName);
+				db = new DB(dbId, cc, dbName, dbType, port, user, pass, serverName);
 			}
 			Map<ReportKey, List<QueryHolder>> queryMap = dbVal.getQueries();
 			for (ReportKey repKey : queryMap.keySet()) {
@@ -566,6 +568,8 @@ public class DatabaseManager {
 	}
 	
 	public boolean deleteDB(DB db) {
+		System.out.println("Deleting DB...");
+		System.out.println("DBID: " + db.getId());
 		if (db.getId() == -1) return false;
 		
 		Connection conn = this.db.getConnection();
@@ -575,6 +579,7 @@ public class DatabaseManager {
 			ps.executeUpdate();
 			
 			db.getReports().stream().forEach(report -> deleteReport(report));
+			db.getConnConfig().getDbs().remove(db);
 			return true;
 		} catch (SQLException e) {
 			return false;
@@ -644,6 +649,7 @@ public class DatabaseManager {
 		@Getter private String serverName;
 		
 		public DBValue(int id, DBType dbType, Map<ReportKey, List<QueryHolder>> queries, File sqliteDBFile, String serverName, int port, String user, String pass) {
+			this.id = id;
 			this.dbType = dbType;
 			this.queries = queries;
 			this.sqliteDBFile = sqliteDBFile;

@@ -1,12 +1,14 @@
 package io.jayms.dbsc.ui.comp.treeitem;
 
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TreeCell;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -23,6 +25,12 @@ public class DBSCTreeCell extends TreeCell<DBSCTreeItem> {
 	
 	public DBSCTreeCell() {
 		super();
+		//setEventDispatcher(new DBSCTreeEventDispatcher(getEventDispatcher()));
+		addEventFilter(MouseEvent.MOUSE_PRESSED, (e) -> {
+			if (e.getClickCount() % 2 == 0 && e.getButton().equals(MouseButton.PRIMARY)) {
+				e.consume();
+			}
+		});
 	}
 	
 	private void setBGAndColor(ObservableList<Node> nodes, Background bg, Paint textClr) {
@@ -34,8 +42,10 @@ public class DBSCTreeCell extends TreeCell<DBSCTreeItem> {
 			if (c instanceof StackPane) {
 				StackPane stackPane = (StackPane) c;
 				if (stackPane.getStyleClass().contains("arrow")) {
+					System.out.println("ARROW RETURNED");
 					return;
 				}
+				stackPane.setBackground(bg);
 			}
 			if (c instanceof Region) {
 				Region region = (Region) c;
@@ -56,7 +66,7 @@ public class DBSCTreeCell extends TreeCell<DBSCTreeItem> {
 				setBGAndColor(parent.getChildrenUnmodifiable(), bg, textClr);
 			}
 		});
-	}
+	} 
 	
 	@Override
 	protected void updateItem(DBSCTreeItem item, boolean empty) {
@@ -81,18 +91,6 @@ public class DBSCTreeCell extends TreeCell<DBSCTreeItem> {
 					arrow.setRotate(0);
 					e.consume();
 				}
-			});
-			
-			selectedProperty().addListener((ov, o, n) -> {
-				Background bg = n ? new Background(new BackgroundFill(SELECTED_TREE_ITEM, CornerRadii.EMPTY, Insets.EMPTY)) :
-					new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY));
-				setBackground(bg);
-				
-				System.out.println("item: " + getItem());
-				if (!DBSCTreeCell.this.getItem().isActive()) return;
-				
-				Color textColor = n ? Color.WHITE : Color.BLACK;
-				setBGAndColor(this.getChildren(), bg, textColor);
 			});
 		}
 	}

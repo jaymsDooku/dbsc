@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import javafx.collections.ListChangeListener;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
+import javafx.scene.shape.Line;
 import lombok.Getter;
 
 public class DraggablePane extends Pane {
@@ -22,7 +23,7 @@ public class DraggablePane extends Pane {
 				if (c.next() && c.wasAdded()) {
 					List<? extends Node> added = c.getAddedSubList();
 					added.forEach(a -> {
-						if (!(a instanceof DraggableNode)) {
+						if (!(a instanceof DraggableNode) && !(a instanceof Line)) {
 							throw new IllegalArgumentException("Tried to add something other than a draggable node to the draggable pane!");
 						}
 					});
@@ -68,7 +69,9 @@ public class DraggablePane extends Pane {
 	}
 	
 	public List<DraggableNode> getDraggableNodes() {
-		return getChildren().stream().map(n -> (DraggableNode) n).collect(Collectors.toList());
+		return getChildren().stream()
+				.filter(n -> n instanceof DraggableNode)
+				.map(n -> (DraggableNode) n).collect(Collectors.toList());
 	}
 	
 	public Rectangle getRectangle(DraggableNode n) {

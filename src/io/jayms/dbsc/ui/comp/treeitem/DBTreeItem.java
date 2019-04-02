@@ -60,6 +60,7 @@ public class DBTreeItem extends DBSCTreeItem {
 		});
 		MenuItem deleteConn = new MenuItem("Delete Database");
 		deleteConn.setOnAction(e -> {
+			masterUI.getLeftPane().getConnections().removeTreeItem(this);
 			masterUI.getDatabaseManager().deleteDB(db);
 		});
 		databaseCM.getItems().addAll(newDB, editDB, deleteConn);

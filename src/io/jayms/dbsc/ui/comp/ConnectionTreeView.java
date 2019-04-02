@@ -18,7 +18,6 @@ import io.jayms.dbsc.ui.comp.treeitem.ReportTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.RootTreeItem;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -27,10 +26,6 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.CornerRadii;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
 import lombok.Getter;
@@ -74,18 +69,34 @@ public class ConnectionTreeView extends AbstractUIModule {
 		treeItem.getParent().getChildren().remove(treeItem);
 	}
 	
+	public TreeItem<DBSCTreeItem> newQueryTreeItem(TreeItem<DBSCTreeItem> reportItem, Query query) {
+		String wsName = query.getWorksheetName();
+		QueryTreeItem queryTreeItem = new QueryTreeItem(masterUI, query);
+		TreeItem<DBSCTreeItem> queryItem = new TreeItem<>(queryTreeItem);
+		queries.put(wsName, query);
+		treeItems.put(queryTreeItem, queryItem);
+		return queryItem;
+	}
+	
+	public TreeItem<DBSCTreeItem> newReportTreeItem(TreeItem<DBSCTreeItem> dbItem, Report report) {
+		ReportTreeItem reportTreeItem = new ReportTreeItem(masterUI, report);
+		TreeItem<DBSCTreeItem> reportItem = new TreeItem<>(reportTreeItem);
+		for (Query query : report.getQueries()) {
+			TreeItem<DBSCTreeItem> queryItem = newQueryTreeItem(reportItem, query);
+			reportItem.getChildren().add(queryItem);
+		}
+		treeItems.put(reportTreeItem, reportItem);
+		return reportItem;
+	}
+	
 	public TreeItem<DBSCTreeItem> newDBTreeItem(TreeItem<DBSCTreeItem> connItem, DB db) {
-		TreeItem<DBSCTreeItem> dbItem = new TreeItem<>(new DBTreeItem(masterUI, db));
+		DBTreeItem dbTreeItem = new DBTreeItem(masterUI, db);
+		TreeItem<DBSCTreeItem> dbItem = new TreeItem<>(dbTreeItem);
 		for (Report report : db.getReports()) {
-			TreeItem<DBSCTreeItem> reportItem = new TreeItem<>(new ReportTreeItem(masterUI, report));
-			for (Query query : report.getQueries()) {
-				String wsName = query.getWorksheetName();
-				TreeItem<DBSCTreeItem> queryItem = new TreeItem<>(new QueryTreeItem(masterUI, query));
-				queries.put(wsName, query);
-				reportItem.getChildren().add(queryItem);
-			}
+			TreeItem<DBSCTreeItem> reportItem = newReportTreeItem(dbItem, report);
 			dbItem.getChildren().add(reportItem);
 		}
+		treeItems.put(dbTreeItem, dbItem);
 		return dbItem;
 	}
 	
@@ -94,14 +105,6 @@ public class ConnectionTreeView extends AbstractUIModule {
 		TreeItem<DBSCTreeItem> connItem = new TreeItem<>(connTreeItem);
 		for (DB db : connConfig.getDbs()) {
 			TreeItem<DBSCTreeItem> dbItem = newDBTreeItem(connItem, db);
-			/*dbItem.addEventHandler(TreeItem.branchExpandedEvent(), (e) -> {
-				
-				e.consume();
-			});
-			dbItem.addEventHandler(TreeItem.graphicChangedEvent(), (e) -> {
-				e.consume();
-			});*/
-			
 			connItem.getChildren().add(dbItem);
 		}
 		connectionsRoot.getChildren().add(connItem);

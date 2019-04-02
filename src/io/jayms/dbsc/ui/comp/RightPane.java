@@ -74,7 +74,6 @@ public class RightPane extends AbstractUIModule {
 	
 	@Override
 	public void show() {
-		
 	}
 	
 	@Override
