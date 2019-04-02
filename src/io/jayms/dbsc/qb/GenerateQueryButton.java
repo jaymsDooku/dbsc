@@ -1,10 +1,10 @@
 package io.jayms.dbsc.qb;
 
 import io.jayms.dbsc.ui.QueryBuilderUI;
+import io.jayms.dbsc.ui.comp.QueryTextEditor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TextField;
 
 public class GenerateQueryButton extends Button {
 
@@ -19,12 +19,12 @@ public class GenerateQueryButton extends Button {
 			
 			Tab selectedTab = qbUI.getMasterUI().getRightPane().getQueriesTab().getSelectionModel().getSelectedItem();
 			Node tabContent = selectedTab.getContent();
-			if (!(tabContent instanceof TextField)) {
+			if (!(tabContent instanceof QueryTextEditor)) {
 				return;
 			}
 			
-			TextField tabText = (TextField) tabContent;
-			tabText.setText(tabText.getText() + query);
+			QueryTextEditor tabText = (QueryTextEditor) tabContent;
+			tabText.appendText(query);
 		});
 	}
 	

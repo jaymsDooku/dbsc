@@ -65,9 +65,9 @@ public class DatabaseManager {
 			+ "DBFilePath TEXT DEFAULT NULL, "
 			+ "ServerName TEXT DEFAULT NULL"
 			+ ")";
-	private static final String INSERT_DB = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType) VALUES (?, ?, ?)";
-	private static final String INSERT_DB_WITH_FILE = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, DBFilePath) VALUES (?, ?, ?, ?)";
-	private static final String INSERT_DB_WITH_SERVERNAME = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, Port, Username, Password, ServerName) VALUES (?, ?, ?, ?, ?, ?, ?)";
+	private static final String INSERT_DB_SQLITE = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, DBFilePath) VALUES (?, ?, ?, ?)";
+	private static final String INSERT_DB_ORACLE = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, Port, Username, Password) VALUES (?, ?, ?, ?, ?, ?)";
+	private static final String INSERT_DB_SQLSERVER = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, Port, Username, Password, ServerName) VALUES (?, ?, ?, ?, ?, ?, ?)";
 	private static final String SELECT_DB = "SELECT DBID, DatabaseName FROM DBS WHERE ConnectionID = ?";
 	private static final String DELETE_DB = "DELETE FROM DBS WHERE DBID = ?";
 	
@@ -164,28 +164,28 @@ public class DatabaseManager {
 	
 	private int insertDB(int connId, DB dbItem) throws SQLException {
 		Connection conn = db.getConnection();
-		PreparedStatement ps;
+		PreparedStatement ps = null;
 		if (dbItem.getType() == DBType.SQLITE) {
-			ps = conn.prepareStatement(INSERT_DB_WITH_FILE, Statement.RETURN_GENERATED_KEYS);
+			ps = conn.prepareStatement(INSERT_DB_SQLITE, Statement.RETURN_GENERATED_KEYS);
 			ps.setInt(1, connId);
 			ps.setString(2, dbItem.getDatabaseName());
 			ps.setString(3, dbItem.getType().toString());
 			ps.setString(4, dbItem.getSqliteDBFile().getAbsolutePath());
-		} else if (dbItem.getType() == DBType.SQL_SERVER) {
-			ps = conn.prepareStatement(INSERT_DB_WITH_SERVERNAME, Statement.RETURN_GENERATED_KEYS);
-			ps.setInt(1, connId);
-			ps.setString(2, dbItem.getDatabaseName());
-			ps.setInt(3, dbItem.getPort());
-			ps.setString(4, dbItem.getUser());
-			ps.setString(5, dbItem.getPass());
-			ps.setString(6, dbItem.getType().toString());
-			ps.setString(7, dbItem.getServerName());
-		} else {
-			ps = conn.prepareStatement(INSERT_DB, Statement.RETURN_GENERATED_KEYS);
+		} else  {
+			ps = conn.prepareStatement((dbItem.getType() == DBType.SQL_SERVER) ? INSERT_DB_SQLSERVER :
+				INSERT_DB_ORACLE, Statement.RETURN_GENERATED_KEYS);
 			ps.setInt(1, connId);
 			ps.setString(2, dbItem.getDatabaseName());
 			ps.setString(3, dbItem.getType().toString());
+			ps.setInt(4, dbItem.getPort());
+			ps.setString(5, dbItem.getUser());
+			ps.setString(6, dbItem.getPass());
+			ps.setString(7, dbItem.getType().toString());
+			if (dbItem.getType() == DBType.SQL_SERVER) {
+				ps.setString(8, dbItem.getServerName());
+			}
 		}
+		
 		ps.executeUpdate();
 		int id = ps.getGeneratedKeys().getInt(1);
 		ps.close();
@@ -425,7 +425,11 @@ public class DatabaseManager {
 					continue;
 				}
 				
-				if ((serverName == null || port == -1 || user == null || pass == null) && (dbType == DBType.SQL_SERVER || dbType == DBType.ORACLE)) {
+				if ((serverName == null || port == -1 || user == null || pass == null) && (dbType == DBType.SQL_SERVER)) {
+					continue;
+				}
+				
+				if ((port == -1 || user == null || pass == null) && (dbType == DBType.ORACLE)) {
 					continue;
 				}
 				
@@ -437,18 +441,19 @@ public class DatabaseManager {
 				} else { // If not, initialize local variables.
 					queries = new HashMap<>();
 					File dbFile = dbFilePath == null ? null : new File(dbFilePath);
-					/*if (!dbFile.exists() && dbType == DBType.SQLITE) {
-						continue;
-					}*/
 					dbVal = new DBValue(dbId, dbType, queries, dbFile, serverName, port, user, pass);
 				}
 				if (wbName != null) {
 					ReportKey key = queries.keySet().stream().filter(k -> k.getReportName().equals(wbName)).findFirst().orElse(null);
-					List<QueryHolder> queryList = key == null ? null : queries.get(key);
+					List<QueryHolder> queryList = queries.get(key);
 					
 					if (queryList == null) queryList = new ArrayList<>();
 					
 					if (queryId > 0 && wsName != null && query != null) {
+						System.out.println("Adding QueryHolder to QueryList");
+						System.out.println("QueryID: " + queryId);
+						System.out.println("WSName: " + wsName);
+						System.out.println("Query: " + query);
 						queryList.add(new QueryHolder(queryId, wsName, query));
 					}
 					queries.put(new ReportKey(reportId, wbName), queryList);
@@ -475,7 +480,6 @@ public class DatabaseManager {
 			
 			DB db;
 			int dbId = dbVal.getId();
-			System.out.println("dbId2: " + dbId);
 			if (dbType == DBType.SQLITE) {
 				File sqliteDBFile = dbVal.getSqliteDBFile();
 				
@@ -490,11 +494,12 @@ public class DatabaseManager {
 				String user = dbVal.getUser();
 				String pass = dbVal.getPass();
 				
-				if (serverName == null) {
-					System.out.println("No server name to connect to SQL Server or Oracle.");
+				if (dbType == DBType.SQL_SERVER && serverName == null) {
+					System.out.println("No server name to connect to SQL Server.");
 					return null;
 				}
-				db = new DB(dbId, cc, dbName, dbType, port, user, pass, serverName);
+				db = (dbType == DBType.SQL_SERVER) ? new DB(dbId, cc, dbName, port, user, pass, serverName) :
+					new DB(dbId, cc, dbName, port, user, pass);
 			}
 			Map<ReportKey, List<QueryHolder>> queryMap = dbVal.getQueries();
 			for (ReportKey repKey : queryMap.keySet()) {

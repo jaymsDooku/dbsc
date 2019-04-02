@@ -11,17 +11,13 @@ import io.jayms.dbsc.ui.comp.LeftPane;
 import io.jayms.dbsc.ui.comp.NumberField;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.DBTreeItem;
-import io.jayms.dbsc.util.ComponentFactory;
 import io.jayms.dbsc.util.Validation;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -102,13 +98,13 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 					children.remove(dbServerNameCtr);
 				}
 				if (children.contains(portCtr) ) {
-					newDBRoot.getChildren().remove(portCtr);
+					children.remove(portCtr);
 				}
 				if (children.contains(userCtr) ) {
-					newDBRoot.getChildren().remove(userCtr);
+					children.remove(userCtr);
 				}
 				if (children.contains(passCtr) ) {
-					newDBRoot.getChildren().remove(passCtr);
+					children.remove(passCtr);
 				}
 				
 				children.add(3, dbFileChooserCtr);
@@ -117,10 +113,22 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 					newDBRoot.getChildren().remove(dbFileChooserCtr);
 				}
 				
-				children.add(3, dbServerNameCtr);
-				children.add(4, portCtr);
-				children.add(5, userCtr);
-				children.add(6, passCtr);
+				if (dbType == DBType.ORACLE && children.contains(dbServerNameCtr)) {
+					children.remove(dbServerNameCtr);
+				}
+			
+				int portIndex = 3;
+				int userIndex = 4;
+				int passIndex = 5;
+				if (dbType == DBType.SQL_SERVER) {
+					children.add(3, dbServerNameCtr);
+					portIndex++;
+					userIndex++;
+					passIndex++;
+				}
+				children.add(portIndex, portCtr);
+				children.add(userIndex, userCtr);
+				children.add(passIndex, passCtr);
 			}
 			
 			selectedDBType = dbType;
@@ -320,12 +328,16 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 				return;
 			}
 			db = new DB(selectedConnConfig, dbName, dbFile);
-		} else if (dbType == DBType.SQL_SERVER || dbType == DBType.ORACLE) {
-			String serverName = dbServerNameTxt.getText();
-			if (Validation.sanityString(serverName)) {
-				Validation.alert("You need to choose a server name!");
-				return;
+		} else {
+			String serverName = null;
+			if (dbType == DBType.SQL_SERVER) {
+				serverName = dbServerNameTxt.getText();
+				if (Validation.sanityString(serverName)) {
+					Validation.alert("You need to choose a server name!");
+					return;
+				}
 			}
+			
 			int port = 0;
 			boolean invalidPort = false;
 			try {
@@ -342,10 +354,10 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 			}
 			String user = userTxt.getText();
 			String pass = passTxt.getText();
-			db = new DB(selectedConnConfig, dbName, dbType, port, user, pass, serverName);
-		} else {
-			db = new DB(selectedConnConfig, dbName, dbType);
+			db = (dbType == DBType.SQL_SERVER) ? new DB(selectedConnConfig, dbName, port, user, pass, serverName) :
+				new DB(selectedConnConfig, dbName, port, user, pass);
 		}
+		
 		selectedConnConfig.getDbs().add(db);
 		
 		TreeItem<DBSCTreeItem> ccTreeItem = connTreeView.getConnectionTreeItem(selectedConnConfig);

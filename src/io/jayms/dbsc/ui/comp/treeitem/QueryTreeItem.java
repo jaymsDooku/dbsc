@@ -4,17 +4,13 @@ import java.sql.SQLException;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.Query;
-import io.jayms.dbsc.ui.NewQueryUI;
-import javafx.geometry.Pos;
+import io.jayms.dbsc.ui.comp.QueryTextEditor;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.MouseButton;
-import javafx.scene.text.Font;
 import lombok.Getter;
 
 public class QueryTreeItem extends DBSCTreeItem {
@@ -85,17 +81,14 @@ public class QueryTreeItem extends DBSCTreeItem {
 		queryTab.setUserData(query);
 		queryTab.setText(wsName);
 		
-		TextField queryTextBox = new TextField();
-		queryTextBox.setMaxWidth(Double.MAX_VALUE);
-		queryTextBox.setMaxHeight(Double.MAX_VALUE);
-		queryTextBox.setAlignment(Pos.TOP_LEFT);
-		queryTextBox.setText(query.getQuery());
-		queryTextBox.setFont(Font.loadFont(DBSCGraphicalUserInterface.EDITOR_FONT, 14));
-		queryTextBox.selectPositionCaret(0);
-		queryTextBox.setOnKeyReleased((e) -> {
+		QueryTextEditor queryTextEditor = new QueryTextEditor();
+		queryTextEditor.initCSS(masterUI.getStage().getScene());
+		queryTextEditor.insertText(0, query.getQuery());
+		
+		queryTextEditor.setOnKeyReleased((e) -> {
 			if (e.getCode() == KeyCode.S && e.isControlDown()) {
 				queryTab.setText(query.getWorksheetName());
-				query.setQuery(queryTextBox.getText());
+				query.setQuery(queryTextEditor.getText());
 				try {
 					masterUI.getDatabaseManager().updateQuery(query);
 				} catch (SQLException ex) {
@@ -105,11 +98,11 @@ public class QueryTreeItem extends DBSCTreeItem {
 				return;
 			}
 		});
-		queryTextBox.setOnKeyTyped((e) -> {
+		queryTextEditor.setOnKeyTyped((e) -> {
 			queryTab.setText(query.getWorksheetName() + "*");
 		});
 		
-		queryTab.setContent(queryTextBox);
+		queryTab.setContent(queryTextEditor);
 		return queryTab;
 	}
 

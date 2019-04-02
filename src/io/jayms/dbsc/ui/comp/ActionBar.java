@@ -97,7 +97,7 @@ public class ActionBar extends AbstractUIModule {
 			}
 			Query query = (Query) tabDataObj;
 			
-			TextField tabTextField = (TextField) curTab.getContent();
+			QueryTextEditor tabTextField = (QueryTextEditor) curTab.getContent();
 			String tabQueryText = tabTextField.getText();
 			query.setQuery(tabQueryText);
 			
