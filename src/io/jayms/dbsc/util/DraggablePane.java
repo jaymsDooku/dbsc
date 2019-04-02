@@ -2,6 +2,9 @@ package io.jayms.dbsc.util;
 
 import java.awt.Rectangle;
 import java.util.List;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.stream.Collectors;
 
 import javafx.collections.ListChangeListener;
@@ -28,8 +31,40 @@ public class DraggablePane extends Pane {
 		});
 	}
 	
+	private Random random = new Random();
+	
+	private Coords getFreeCoords(DraggableNode dragNode) {
+		int x = random.nextInt((int) (this.getWidth() - dragNode.getBoundsInParent().getWidth()));
+		int y = random.nextInt((int) (this.getHeight() - dragNode.getBoundsInParent().getHeight()));
+		
+		while (hasCollided(dragNode, x, y)) {
+			x = random.nextInt((int) (this.getWidth() - dragNode.getBoundsInParent().getWidth()));
+			y = random.nextInt((int) (this.getHeight() - dragNode.getBoundsInParent().getHeight()));
+		}
+		
+		return new Coords(x, y);
+	}
+	
 	public void addDraggable(DraggableNode dragNode) {
 		getChildren().add(dragNode);
+		new Timer().schedule(new TimerTask() {
+			
+			@Override
+			public void run() {
+				int x = (int) dragNode.getLayoutX();
+				int y = (int) dragNode.getLayoutY();
+				if (getChildren().size() > 1) {
+					x--;
+					y--;
+				}
+				if (hasCollided(dragNode, x, y)) {
+					Coords freeCoords = getFreeCoords(dragNode);
+					dragNode.setLayoutX(freeCoords.getX());
+					dragNode.setLayoutY(freeCoords.getY());
+				}
+			}
+			
+		}, 25L);
 	}
 	
 	public List<DraggableNode> getDraggableNodes() {
@@ -37,22 +72,33 @@ public class DraggablePane extends Pane {
 	}
 	
 	public Rectangle getRectangle(DraggableNode n) {
-		return new Rectangle((int) n.getLayoutX(), (int) n.getLayoutY(), (int) n.getWidth(), (int) n.getHeight());
+		return new Rectangle((int) n.getLayoutX(), (int) n.getLayoutY(), (int) n.getBoundsInParent().getWidth(), (int) n.getBoundsInParent().getHeight());
 	}
 	
 	public Rectangle getRectangle(DraggableNode n, int newX, int newY) {
-		return new Rectangle(newX, newY, (int) n.getWidth(), (int) n.getHeight());
+		return new Rectangle(newX, newY, (int) n.getBoundsInParent().getWidth(), (int) n.getBoundsInParent().getHeight());
 	}
 	
 	public boolean hasCollided(DraggableNode dragNode, int newX, int newY) {
 		Rectangle r1 = getRectangle(dragNode, newX, newY);
-		
+
 		return getDraggableNodes().stream().filter(n -> {
 				if (n.equals(dragNode)) return false;
 				
 				Rectangle r2 = getRectangle(n);
 				return r1.intersects(r2);
 			}).findFirst().isPresent();
+	}
+	
+	private static class Coords {
+		
+		@Getter private int x;
+		@Getter private int y;
+		
+		public Coords(int x, int y) {
+			this.x = x;
+			this.y = y;
+		}
 	}
 	
 	/*public CollisionResult hasCollided(DraggableNode dragNode, int newX, int newY) {
