@@ -16,17 +16,24 @@ public class QueryTaskMaster {
 
 	private int queryTaskId = 1;
 	private Map<Integer, QueryTask> queryTasks = Maps.newConcurrentMap();
+	private ExecutorService executorService;
 	private DBSCGraphicalUserInterface masterUI;
 	
 	public QueryTaskMaster(DBSCGraphicalUserInterface masterUI) {
 		this.masterUI = masterUI;
+		this.executorService = Executors.newSingleThreadExecutor();
+	}
+	
+	public void updateTaskStatus() {
+		String status = queryTasks.isEmpty() ? "No Tasks Running" : "Running Tasks (" + (queryTasks.size()) + ")";
+		masterUI.getRightPane().getActionBar().updateStatus(status);
 	}
 	
 	public int startQuery(Query query, File toSave) {
 		int id = queryTaskId;
 		QueryTask queryTask = new QueryTask(id, masterUI, query, toSave);
 		
-		Platform.runLater(queryTask);
+		executorService.submit(queryTask);
 		
 		queryTasks.put(id, queryTask);
 		queryTaskId++;

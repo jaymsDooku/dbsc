@@ -25,6 +25,7 @@ public class GenerateQueryButton extends Button {
 			
 			QueryTextEditor tabText = (QueryTextEditor) tabContent;
 			tabText.appendText(query);
+			qbUI.close();
 		});
 	}
 	

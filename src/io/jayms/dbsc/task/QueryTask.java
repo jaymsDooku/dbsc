@@ -37,14 +37,18 @@ public class QueryTask extends Task<QueryTaskResult> {
 		Database connDB = dbManager.getDatabaseConnection(db);
 		DatabaseConverter converter = new DatabaseConverter(connDB);
 		
+		masterUI.getRightPane().getActionBar().updateStatus("Running Query Task " + taskId +  " - Constructing Worksheet from Query");
 		String worksheetName = query.getWorksheetName();
 		Workbook wb = new Workbook(report.getWorkbookName());
 		Worksheet worksheet = converter.addQueryToWorksheet(wb, worksheetName, query.getQuery());
 		
+		masterUI.getRightPane().getActionBar().updateStatus("Running Query Task " + taskId +  " - Writing to file");
 		File file = masterUI.getRightPane().getChosenFile();
-		wb.save(file);
-		
+		wb.save(file, query.getReport().getWorksheetDescriptors());
+
 		QueryTaskResult result = new QueryTaskResult(wb, worksheet);
+		masterUI.getQueryTaskMaster().stopQuery(taskId);
+		masterUI.getQueryTaskMaster().updateTaskStatus();
 		return result;
 	}
 }

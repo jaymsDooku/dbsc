@@ -1,9 +1,12 @@
 package io.jayms.dbsc.model;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 
+import io.jayms.xlsx.model.WorksheetDescriptor;
 import lombok.Getter;
 
 public class Report {
@@ -26,6 +29,10 @@ public class Report {
 		this.doubleBandFormat = doubleBandFormat;
 		this.titleStyle = titleStyle;
 		this.queries = Lists.newArrayList(queries);
+	}
+	
+	public Set<WorksheetDescriptor> getWorksheetDescriptors() {
+		return queries.stream().map(q -> new WorksheetDescriptor(q.getWorksheetName(), q.getFieldConfigs())).collect(Collectors.toSet());
 	}
 	
 	@Override

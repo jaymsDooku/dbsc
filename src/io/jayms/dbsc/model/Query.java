@@ -1,5 +1,8 @@
 package io.jayms.dbsc.model;
 
+import java.util.Map;
+
+import io.jayms.xlsx.model.FieldConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +13,8 @@ public class Query {
 	@Getter @Setter private String worksheetName;
 	@Getter @Setter private String query;
 	
+	@Getter @Setter private Map<String, FieldConfiguration> fieldConfigs;
+	
 	public Query(Report report, String worksheetName, String query) {
 		this(-1, report, worksheetName, query);
 	}
@@ -19,6 +24,10 @@ public class Query {
 		this.report = report;
 		this.worksheetName = worksheetName;
 		this.query = query;
+	}
+	
+	public boolean isEmpty() {
+		return query == null || query.isEmpty();
 	}
 	
 	@Override

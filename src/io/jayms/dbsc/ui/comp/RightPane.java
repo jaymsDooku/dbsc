@@ -10,6 +10,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.stage.FileChooser;
@@ -27,6 +28,7 @@ public class RightPane extends AbstractUIModule {
 	
 	@Getter private File chosenFile;
 	
+	@Getter private BorderPane workspace;
 	@Getter private TabPane queriesTab;
 	@Getter private ActionBar actionBar;
 	
@@ -61,15 +63,20 @@ public class RightPane extends AbstractUIModule {
 		});
 		topPane.getChildren().addAll(pathDisplay, ssFileChooseBtn);
 		
+		workspace = new BorderPane();
+		
 		queriesTab = new TabPane();
 		
 		actionBar = new ActionBar(masterUI);
 		actionBar.init();
 		
+		workspace.setCenter(queriesTab);
+		workspace.setBottom(actionBar.getActionBar());
+		
 		rightPane.setDividerPosition(0, DBSCGraphicalUserInterface.rightTopPaneHeight);
 		rightPane.setDividerPosition(1, 0.95);
 		rightPane.setOrientation(Orientation.VERTICAL);
-		rightPane.getItems().addAll(topPane, queriesTab, actionBar.getActionBar());
+		rightPane.getItems().addAll(topPane, workspace);
 	}
 	
 	@Override

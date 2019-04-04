@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.json.JSONObject;
 
@@ -31,6 +32,10 @@ import io.jayms.dbsc.model.StyleHolder;
 import io.jayms.xlsx.db.Database;
 import io.jayms.xlsx.db.OracleDatabase;
 import io.jayms.xlsx.db.SQLServerDatabase;
+import io.jayms.xlsx.model.DoubleBandFormat;
+import io.jayms.xlsx.model.FieldConfiguration;
+import io.jayms.xlsx.model.Style;
+import io.jayms.xlsx.util.JSONTools;
 import lombok.Getter;
 
 public class DatabaseManager {
@@ -98,11 +103,12 @@ public class DatabaseManager {
 			+ "QueryID INTEGER PRIMARY KEY AUTOINCREMENT, "
 			+ "WorksheetName TEXT NOT NULL, "
 			+ "QueryString TEXT NOT NULL, "
+			+ "FieldConfigurations TEXT DEFAULT NULL, "
 			+ "UNIQUE (WorksheetName, QueryString) "
 			+ "ON CONFLICT IGNORE"
 			+ ")";
-	private static final String INSERT_QUERY = "INSERT INTO QUERIES(WorksheetName, QueryString) VALUES (?, ?)";
-	private static final String UPDATE_QUERY = "UPDATE QUERIES SET WorksheetName = ?, QueryString = ? WHERE QueryID = ?";
+	private static final String INSERT_QUERY = "INSERT INTO QUERIES(WorksheetName, QueryString, FieldConfigurations) VALUES (?, ?, ?)";
+	private static final String UPDATE_QUERY = "UPDATE QUERIES SET WorksheetName = ?, QueryString = ?, FieldConfigurations = ? WHERE QueryID = ?";
 	private static final String DELETE_QUERY = "DELETE FROM QUERIES WHERE QueryID = ?";
 	
 	@Getter private final DBSCGraphicalUserInterface masterUI;
@@ -213,6 +219,7 @@ public class DatabaseManager {
 		PreparedStatement ps = conn.prepareStatement(INSERT_QUERY, Statement.RETURN_GENERATED_KEYS);
 		ps.setString(1, query.getWorksheetName());
 		ps.setString(2, query.getQuery());
+		ps.setString(3, JSONTools.ToJSON.toJSON(query.getFieldConfigs()).toString());
 		ps.executeUpdate();
 		int id = ps.getGeneratedKeys().getInt(1);
 		ps.close();
@@ -389,16 +396,22 @@ public class DatabaseManager {
 				int dbId = rs.getInt("DBID");
 				String dbName = rs.getString("DatabaseName");
 				String wbName = rs.getString("WorkbookName");
+				String dbFormatJson = rs.getString("DoubleBandFormat");
+				String titleStyleJson = rs.getString("TitleStyle");
 				int reportId = rs.getInt("ReportID");
 				String wsName = rs.getString("WorksheetName");
+				String fieldConfigsJson = rs.getString("FieldConfigurations");
 				String query = rs.getString("QueryString");
 				int queryId = rs.getInt("QueryID");
 				
 				System.out.println("dbId: " + dbId);
 				System.out.println("dbName: " + dbName);
 				System.out.println("wbName: " + wbName);
+				System.out.println("dbFormat: " + dbFormatJson);
+				System.out.println("titleStyle: " + titleStyleJson);
 				System.out.println("reportId: " + reportId);
 				System.out.println("wsName: " + wsName);
+				System.out.println("fieldConfigs: " + fieldConfigsJson);
 				System.out.println("query: " + query);
 				System.out.println("queryId: " + queryId);
 				
@@ -454,9 +467,14 @@ public class DatabaseManager {
 						System.out.println("QueryID: " + queryId);
 						System.out.println("WSName: " + wsName);
 						System.out.println("Query: " + query);
-						queryList.add(new QueryHolder(queryId, wsName, query));
+						System.out.println("Field Configs: " + fieldConfigsJson);
+						Map<String, FieldConfiguration> fileConfigs = JSONTools.FromJSON.fieldConfigs(new JSONObject(fieldConfigsJson));
+						queryList.add(new QueryHolder(queryId, wsName, query, fileConfigs));
 					}
-					queries.put(new ReportKey(reportId, wbName), queryList);
+					DoubleBandFormat dbFormat = JSONTools.FromJSON.doubleBandFormat(new JSONObject(dbFormatJson));
+					Style titleStyle = JSONTools.FromJSON.style(new JSONObject(titleStyleJson));
+					
+					queries.put(new ReportKey(reportId, wbName, dbFormat, titleStyle), queryList);
 				}
 				dbMap.put(dbName, dbVal);
 				
@@ -634,10 +652,29 @@ public class DatabaseManager {
 		
 		@Getter private int id;
 		@Getter private String reportName;
+		@Getter private DoubleBandFormat dbFormat;
+		@Getter private Style titleStyle;
 		
-		public ReportKey(int id, String reportName) {
+		public ReportKey(int id, String reportName, DoubleBandFormat dbFormat, Style titleStyle) {
 			this.id = id;
 			this.reportName = reportName;
+			this.dbFormat = dbFormat;
+			this.titleStyle = titleStyle;
+		}
+		
+		@Override
+		public int hashCode() {
+			return Objects.hash(id, reportName);
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (!(obj instanceof ReportKey)) {
+				return false;
+			}
+			
+			ReportKey rk = (ReportKey) obj;
+			return rk.id == id && rk.reportName.equals(reportName);
 		}
 	}
 	
@@ -670,11 +707,13 @@ public class DatabaseManager {
 		@Getter private int id;
 		@Getter private String worksheetName;
 		@Getter private String query;
+		@Getter private Map<String, FieldConfiguration> fieldConfigs;
 		
-		public QueryHolder(int id, String worksheetName, String query) {
+		public QueryHolder(int id, String worksheetName, String query, Map<String, FieldConfiguration> fieldConfigs) {
 			this.id = id;
 			this.worksheetName = worksheetName;
 			this.query = query;
+			this.fieldConfigs = fieldConfigs;
 		}
 	}
 }
