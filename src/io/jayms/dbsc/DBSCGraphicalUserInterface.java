@@ -103,26 +103,24 @@ public class DBSCGraphicalUserInterface extends Application {
 	@Getter private static StyleHolder defaultTitleStyle;
 	
 	static {
-		defaultDoubleBandFormat = new DoubleBandFormatHolder(StyleTable.COLORS[7], StyleTable.COLORS[8]);
+		FontHolder defaultFont = new FontHolder("Arial", 12, true, StyleTable.COLORS[0]);
+		defaultDoubleBandFormat = new DoubleBandFormatHolder(new StyleHolder(defaultFont, StyleTable.COLORS[7]),
+				new StyleHolder(defaultFont, StyleTable.COLORS[8]));
 		
 		java.awt.Color tc = new java.awt.Color(102, 153, 153, 255);
 		FontHolder tf = new FontHolder("Arial", 12, true, new java.awt.Color(0, 0, 0, 255));
 		defaultTitleStyle = new StyleHolder(tf, tc);
 	}
 	
-	/*private static DB qbTestDB;
+	@Getter private Set<UIModule> openModules = new HashSet<>();
 	
-	static {
-		List<Report> testReports = new ArrayList<>();
-		testReports.add(new Report("TestReport", new Query("YeetSheet1", "SELECT DAB FROM THEYEET")));
-		
-		Set<Table> testTables = new HashSet<>();
-		Set<Column> table1Columns = new HashSet<>();
-		table1Columns.add(new Column("name", DataType.TEXT));
-		testTables.add(new Table("table1", table1Columns));
-		
-		qbTestDB = new DB("TestDB", DBType.SQLITE, testReports, testTables);
-	}*/
+	public void openUIModule(UIModule module) {
+		openModules.add(module);
+	}
+	
+	public void closeUIModule(UIModule module) {
+		openModules.remove(module);
+	}
 	
 	@Override
 	public void start(Stage stage) throws Exception {
@@ -174,14 +172,18 @@ public class DBSCGraphicalUserInterface extends Application {
 		Scene scene = new Scene(genesisPane, 800, 600);
 		stage.setScene(scene);
 		
+		stage.setOnHiding((e) -> {
+			for (UIModule uiModule : openModules) {
+				uiModule.close();
+			}
+			System.exit(0);
+		});
+		
 		stage.show();
 	}
 	
 	@Override
 	public void stop() throws Exception {
-		for (UIModule uiModule : uiModules) {
-			uiModule.close();
-		}
 		databaseManager.storeConnectionConfigs();
 		databaseManager.close();
 	}

@@ -108,13 +108,17 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 				}
 				
 				children.add(3, dbFileChooserCtr);
+				dbNameLbl.setText("Database Name: ");
 			} else if (selectedDBType == DBType.SQLITE){
 				if (children.contains(dbFileChooserCtr)) {
 					newDBRoot.getChildren().remove(dbFileChooserCtr);
 				}
 				
-				if (dbType == DBType.ORACLE && children.contains(dbServerNameCtr)) {
-					children.remove(dbServerNameCtr);
+				if (dbType == DBType.ORACLE) {
+					if (children.contains(dbServerNameCtr)) {
+						children.remove(dbServerNameCtr);
+					}
+					dbNameLbl.setText("Schema Name: ");
 				}
 			
 				int portIndex = 3;

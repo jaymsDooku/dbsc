@@ -1,6 +1,5 @@
 package io.jayms.dbsc.qb;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,6 +12,7 @@ import com.google.common.collect.Multimap;
 import io.jayms.dbsc.model.Column;
 import io.jayms.dbsc.model.Table;
 import lombok.Getter;
+import lombok.Setter;
 
 public class QueryBuilderContext {
 
@@ -70,7 +70,9 @@ public class QueryBuilderContext {
 		}
 		
 		result.append(fieldsPart);
-		result.append(" \nFROM ");
+		result.append(" ");
+		if (applyFormatting) result.append("\n");
+		result.append("FROM ");
 		
 		StringBuilder tablesPart = new StringBuilder();
 		
@@ -102,7 +104,8 @@ public class QueryBuilderContext {
 				if (i == 0) {
 					tablesPart.append(tableName1 + " ");
 				}
-				tablesPart.append("\nJOIN ");
+				if (applyFormatting) tablesPart.append("\n");
+				tablesPart.append("JOIN ");
 				tablesPart.append(tableName2);
 				tablesPart.append(" ON ");
 				tablesPart.append(tableName1 + "." + col1.getName());

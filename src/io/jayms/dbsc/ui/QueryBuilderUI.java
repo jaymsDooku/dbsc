@@ -1,6 +1,7 @@
 package io.jayms.dbsc.ui;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -12,6 +13,7 @@ import io.jayms.dbsc.model.Column;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.Table;
 import io.jayms.dbsc.qb.ColumnLabel;
+import io.jayms.dbsc.qb.ExplainPlanButton;
 import io.jayms.dbsc.qb.GenerateQueryButton;
 import io.jayms.dbsc.qb.Join;
 import io.jayms.dbsc.qb.JoinCircle;
@@ -21,13 +23,16 @@ import io.jayms.dbsc.util.ComponentFactory;
 import io.jayms.dbsc.util.DraggableNode;
 import io.jayms.dbsc.util.DraggablePane;
 import io.jayms.dbsc.util.Vec2;
+import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableView;
 import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
@@ -57,12 +62,15 @@ public class QueryBuilderUI extends StandaloneUIModule {
 	
 	@Getter private Pane qbABSpacer;
 	
-	@Getter private HBox qbQueryGenCtr;
+	@Getter private HBox qbQueryToolsCtr;
 	@Getter private CheckBox qbFormattingCb;
 	@Getter private Button qbGenerateQueryBtn;
+	@Getter private Button qbExplainPlanBtn;
 	
 	@Getter private DraggablePane queryBuilderPane;
 	@Getter private QueryBuilderContext queryBuilderContext;
+	
+	@Getter private TableView qbExplainDisplay;
 	
 	@Getter private final DB db;
 	
@@ -181,15 +189,17 @@ public class QueryBuilderUI extends StandaloneUIModule {
 		HBox.setHgrow(qbABSpacer, Priority.ALWAYS);
 		qbABSpacer.setMinSize(10, 1);
 		
-		qbQueryGenCtr = new HBox();
+		qbQueryToolsCtr = new HBox();
+		qbQueryToolsCtr.setAlignment(Pos.CENTER_RIGHT);
 		
 		qbFormattingCb = new CheckBox("Apply Formatting");
 		
+		qbExplainPlanBtn = new ExplainPlanButton(masterUI, this);
 		qbGenerateQueryBtn = new GenerateQueryButton(this);
 		
-		qbQueryGenCtr.getChildren().addAll();
+		qbQueryToolsCtr.getChildren().addAll(qbFormattingCb, qbExplainPlanBtn, qbGenerateQueryBtn);
 		
-		queryBuilderActionBar.getChildren().addAll(qbAddTableCtr, qbABSpacer, qbGenerateQueryBtn);
+		queryBuilderActionBar.getChildren().addAll(qbAddTableCtr, qbABSpacer, qbQueryToolsCtr);
 		queryBuilderActionBar.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 		
 		queryBuilderPane = new DraggablePane();
@@ -238,4 +248,18 @@ public class QueryBuilderUI extends StandaloneUIModule {
 		queryBuilderScene = new Scene(queryBuilderRootPane, 800, 800);
 		uiStage.setScene(queryBuilderScene);
 	}
+	
+	public void updateExplainPlanTable(TableView explainDisplay) {
+		ObservableList<Node> children = queryBuilderRootPane.getChildren();
+		Iterator<Node> it = children.iterator();
+		while (it.hasNext()) {
+			Node node = it.next();
+			if (node instanceof TableView) {
+				it.remove();
+			}
+		}
+		
+		children.add(explainDisplay);
+	}
+	
 }

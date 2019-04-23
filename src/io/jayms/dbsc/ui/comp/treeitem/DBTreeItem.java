@@ -4,7 +4,7 @@ import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DBType;
 import io.jayms.dbsc.ui.EditDatabaseUI;
-import io.jayms.dbsc.ui.NewReportUI;
+import io.jayms.dbsc.ui.ReportUI;
 import io.jayms.dbsc.util.ComponentFactory;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -16,7 +16,7 @@ public class DBTreeItem extends DBSCTreeItem {
 	
 	public DBTreeItem(DBSCGraphicalUserInterface masterUI, DB db) {
 		super(masterUI, new Label(db.getDatabaseName()), ComponentFactory.createButton("+", e -> {
-					new NewReportUI(masterUI, db).show();
+					new ReportUI(masterUI, db, null).show();
 				}));
 		this.db = db;
 	}
@@ -52,7 +52,7 @@ public class DBTreeItem extends DBSCTreeItem {
 		ContextMenu databaseCM = new ContextMenu();
 		MenuItem newDB = new MenuItem("New Report");
 		newDB.setOnAction(e -> {
-			new NewReportUI(masterUI, db).show();
+			new ReportUI(masterUI, db, null).show();
 		});
 		MenuItem editDB = new MenuItem("Edit DB");
 		editDB.setOnAction(e -> {

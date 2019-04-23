@@ -78,7 +78,10 @@ public class QueryTreeItem extends DBSCTreeItem {
 		String wsName = query.getWorksheetName();
 		
 		Tab queryTab = new Tab();
-		queryTab.setUserData(query);
+		
+		QueryTabData tabData = new QueryTabData(query);
+		
+		queryTab.setUserData(tabData);
 		queryTab.setText(wsName);
 		
 		QueryTextEditor queryTextEditor = new QueryTextEditor();

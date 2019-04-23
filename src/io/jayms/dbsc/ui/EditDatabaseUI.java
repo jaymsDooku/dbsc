@@ -90,7 +90,7 @@ public class EditDatabaseUI extends StandaloneUIModule {
 		
 		editDBBtnCtr = new HBox();
 		editDBBtnCtr.setAlignment(Pos.CENTER);
-		editDBBtn = new Button("Register Database");
+		editDBBtn = new Button("Edit Database");
 		EventHandler<MouseEvent> registerBtnPress = (MouseEvent e) -> {
 			onEditDB();
 		};

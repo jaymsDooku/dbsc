@@ -1,11 +1,6 @@
 package io.jayms.dbsc.ui.comp;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.List;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.db.DatabaseManager;
@@ -17,10 +12,9 @@ import io.jayms.dbsc.task.QueryTaskMaster;
 import io.jayms.dbsc.ui.AbstractUIModule;
 import io.jayms.dbsc.ui.QueryBuilderUI;
 import io.jayms.dbsc.ui.QueryOptionsUI;
+import io.jayms.dbsc.ui.comp.treeitem.QueryTabData;
 import io.jayms.dbsc.util.ComponentFactory;
 import io.jayms.dbsc.util.Validation;
-import io.jayms.xlsx.db.DBTools;
-import io.jayms.xlsx.db.Database;
 import io.jayms.xlsx.db.DatabaseColumn;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -41,14 +35,6 @@ import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import lombok.Getter;
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.select.Join;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectItem;
 
 public class ActionBar extends AbstractUIModule {
 
@@ -128,11 +114,12 @@ public class ActionBar extends AbstractUIModule {
 				return;
 			}
 			Object tabDataObj = curTab.getUserData();
-			if (tabDataObj == null || !(tabDataObj instanceof Query)) {
+			if (tabDataObj == null || !(tabDataObj instanceof QueryTabData)) {
 				System.out.println("No tab editor data held");
 				return;
 			}
-			Query query = (Query) tabDataObj;
+			QueryTabData queryTabData = (QueryTabData) tabDataObj;
+			Query query = queryTabData.getQuery();
 			
 			QueryTextEditor tabTextField = (QueryTextEditor) curTab.getContent();
 			String tabQueryText = tabTextField.getText();
@@ -141,6 +128,7 @@ public class ActionBar extends AbstractUIModule {
 			QueryTaskMaster taskMaster = masterUI.getQueryTaskMaster();
 			int queryTaskId = taskMaster.startQuery(query, chosenFile);
 			QueryTask queryTask = taskMaster.getQueryTask(queryTaskId);
+			queryTabData.setRunningTaskId(queryTaskId);
 		});
 		
 		queryOptionsBtn = ComponentFactory.createButton("Query Options", (e) -> {
@@ -152,66 +140,46 @@ public class ActionBar extends AbstractUIModule {
 			}
 			
 			Object tabDataObj = curTab.getUserData();
-			if (tabDataObj == null || !(tabDataObj instanceof Query)) {
+			if (tabDataObj == null || !(tabDataObj instanceof QueryTabData)) {
 				System.out.println("No tab editor data held");
 				return;
 			}
-			Query query = (Query) tabDataObj;
+			QueryTabData queryTabData = (QueryTabData) tabDataObj;
+			Query query = queryTabData.getQuery();
 			
 			if (query.isEmpty()) {
 				Validation.alert("You need to write a query first.");
 				return;
 			}
 			
-			String queryContent = query.getQuery();
-			
-			try {
-				Statement stmt = CCJSqlParserUtil.parse(queryContent);
-				if (!(stmt instanceof Select)) {
-					Validation.alert("Must be a select statement.");
-					return;
-				}
-				
-				StringBuilder selectFields = new StringBuilder();
-				
-				Select selectStmt = (Select) stmt;
-				PlainSelect selectBody = (PlainSelect) selectStmt.getSelectBody();
-				List<SelectItem> selectItems = selectBody.getSelectItems();
-				for (int i = 0; i < selectItems.size(); i++) {
-					SelectItem selectItem = selectItems.get(i);
-					selectFields.append(selectItem.toString());
-					if (i < selectItems.size() - 1) {
-						selectFields.append(", ");
-					}
-				}
-				
-				StringBuilder tableParts = new StringBuilder();
-				FromItem fromItem = selectBody.getFromItem();
-				tableParts.append(fromItem);
-				List<Join> joins = selectBody.getJoins();
-				if (joins != null && !joins.isEmpty()) joins.stream().forEach(j -> tableParts.append(" " + j));
-				
-				String scoutQuery = "SELECT " + selectFields.toString() + " FROM "  + tableParts + " WHERE 1<0";
-				
-				DatabaseManager dbManager = masterUI.getDatabaseManager();
-				Database connDB = dbManager.getDatabaseConnection(query.getReport().getDb());
-				Connection conn = connDB.getConnection();
-				try {
-					ResultSet rs = conn.createStatement().executeQuery(scoutQuery);
-					ResultSetMetaData meta = rs.getMetaData();
-					DatabaseColumn[] dbCols = DBTools.getDatabaseColumns(meta);
-					new QueryOptionsUI(masterUI, query, dbCols).show();
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
-			} catch (JSQLParserException e1) {
-				Validation.alert("Failed to parse query.");
-			}
+			DatabaseColumn[] dbCols = DatabaseManager.getTableFields(masterUI, query);
+			new QueryOptionsUI(masterUI, query, dbCols).show();
 		});
 		
 		statusLbl();
 		
-		stopQueryBtn = new Button("Stop Query");
+		stopQueryBtn = ComponentFactory.createButton("Stop Query", (e) -> {
+			TabPane queriesTab = masterUI.getRightPane().getQueriesTab();
+			Tab curTab = queriesTab.getSelectionModel().getSelectedItem();
+			if (curTab == null) {
+				Validation.alert("You need to open a query tab first!");
+				return;
+			}
+			Object tabDataObj = curTab.getUserData();
+			if (tabDataObj == null || !(tabDataObj instanceof QueryTabData)) {
+				System.out.println("No tab editor data held");
+				return;
+			}
+			QueryTabData queryTabData = (QueryTabData) tabDataObj;
+			if (queryTabData.getRunningTaskId() == -1) {
+				Validation.alert("No query task running.");
+				return;
+			}
+			
+			QueryTaskMaster taskMaster = masterUI.getQueryTaskMaster();
+			taskMaster.stopQuery(queryTabData.getRunningTaskId());
+		});
+		
 		openQueryBuilderBtn();
 		actionBar.getChildren().addAll(runQueryBtn, queryOptionsBtn, stopQueryBtn, openQueryBuilderBtn, statusLbl);
 	}

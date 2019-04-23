@@ -15,15 +15,16 @@ public class Query {
 	
 	@Getter @Setter private Map<String, FieldConfiguration> fieldConfigs;
 	
-	public Query(Report report, String worksheetName, String query) {
-		this(-1, report, worksheetName, query);
+	public Query(Report report, String worksheetName, String query, Map<String, FieldConfiguration> fieldConfigs) {
+		this(-1, report, worksheetName, query, fieldConfigs);
 	}
 	
-	public Query(int id, Report report, String worksheetName, String query) {
+	public Query(int id, Report report, String worksheetName, String query, Map<String, FieldConfiguration> fieldConfigs) {
 		this.id = id;
 		this.report = report;
 		this.worksheetName = worksheetName;
 		this.query = query;
+		this.fieldConfigs = fieldConfigs;
 	}
 	
 	public boolean isEmpty() {

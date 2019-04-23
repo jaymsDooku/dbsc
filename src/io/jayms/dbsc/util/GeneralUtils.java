@@ -1,9 +1,21 @@
 package io.jayms.dbsc.util;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.sql.SQLException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import javafx.scene.paint.Color;
 
@@ -45,5 +57,37 @@ public class GeneralUtils {
 			}
 		}
 		return online;
+	}
+	
+	public static Document toXMLDocument(String str) throws ParserConfigurationException, SAXException, IOException {
+		DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+		Document document = docBuilder.parse(new InputSource(new StringReader(str)));
+		return document;
+	}
+	
+	public static String clobToString(java.sql.Clob data)
+	{
+	    final StringBuilder sb = new StringBuilder();
+
+	    try
+	    {
+	        final Reader         reader = data.getCharacterStream();
+	        final BufferedReader br     = new BufferedReader(reader);
+
+	        int b;
+	        while(-1 != (b = br.read()))
+	        {
+	            sb.append((char)b);
+	        }
+
+	        br.close();
+	    }
+	    catch (SQLException | IOException e)
+	    {
+	    	e.printStackTrace();
+	    }
+
+	    return sb.toString();
 	}
 }

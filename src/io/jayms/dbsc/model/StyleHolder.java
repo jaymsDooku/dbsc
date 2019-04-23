@@ -4,17 +4,24 @@ import java.awt.Color;
 
 import org.json.JSONObject;
 
+import io.jayms.xlsx.model.Fill;
 import io.jayms.xlsx.model.Style;
+import io.jayms.xlsx.model.Workbook;
 import lombok.Getter;
+import lombok.Setter;
 
 public class StyleHolder {
 
-	@Getter private FontHolder font;
-	@Getter private Color fillColor;
+	@Getter @Setter private FontHolder font;
+	@Getter @Setter private Color fillColor;
 	
 	public StyleHolder(FontHolder font, Color fillColor) {
 		this.font = font;
 		this.fillColor = fillColor;
+	}
+	
+	public Style toStyle(Workbook wb) {
+		return new Style(font.toFont(wb), new Fill(fillColor));
 	}
 	
 	public static JSONObject toJSON(StyleHolder style) {

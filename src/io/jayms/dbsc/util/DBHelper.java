@@ -1,13 +1,13 @@
 package io.jayms.dbsc.util;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -40,7 +40,7 @@ public class DBHelper {
 		case SQL_SERVER:
 			break;
 		case ORACLE:
-			break;
+			return fetchOracleTables(conn, db);
 		default:
 			break;
 		}
@@ -51,23 +51,34 @@ public class DBHelper {
 	public void fetchTablesAsync(DB db, Consumer<List<Table>> cb) {
 		CompletableFuture.supplyAsync(() -> fetchTables(db)).thenAccept(cb);
 	}
+	
+	private List<Column> getColumns(ResultSetMetaData meta) throws SQLException {
+		List<Column> columnSet = new ArrayList<>();
+		
+		int colCount = meta.getColumnCount();
+		System.out.println("col count: " + colCount);
+		for (int i = 1; i <= colCount; i++) {
+			String colName = meta.getColumnName(i);
+			int colType = meta.getColumnType(i);
+			DataType colDataType = DataType.valueOf(colType);
+			System.out.println("col name: " + colName);
+			System.out.println("col type: " + colType);
+			Column col = new Column(colName, colDataType);
+			columnSet.add(col);
+		}
+		
+		return columnSet;
+	}
 
 	private List<Table> fetchSQLiteTables(Connection conn, DB db) {
 		try {
 			Statement stmt = conn.createStatement();
 			ResultSet tables = stmt.executeQuery("SELECT * FROM sqlite_master WHERE type=\"table\"");
 			
-			ResultSetMetaData meta = tables.getMetaData();
-			int colCount = meta.getColumnCount();
-			System.out.println("col count: " + colCount);
-			for (int i = 1; i <= colCount; i++) {
-				System.out.println("col name: " + meta.getColumnName(i));
-				System.out.println("col type: " + meta.getColumnType(i));
-			}
 			List<Table> result = new ArrayList<>();
 
 			while (tables.next()) {
-				String tblName= tables.getString("tbl_name");
+				String tblName = tables.getString("tbl_name");
 				String name = tables.getString("name");
 				String sql = tables.getString("sql");
 				
@@ -75,34 +86,22 @@ public class DBHelper {
 				System.out.println("name: " + name);
 				System.out.println("sql: " + sql);
 				
-				Statement colStmt = conn.createStatement();
-				ResultSet columns = colStmt.executeQuery("SELECT * FROM " + tblName + " WHERE 1 < 0");
+				stmt = conn.createStatement();
+				ResultSet columns = stmt.executeQuery("SELECT * FROM " + tblName + " WHERE 1 < 0");
+				ResultSetMetaData meta = columns.getMetaData();
 				
-				List<Column> columnSet = new ArrayList<>();
-				
-				meta = columns.getMetaData();
-				colCount = meta.getColumnCount();
-				System.out.println("col count: " + colCount);
-				for (int i = 1; i <= colCount; i++) {
-					String colName = meta.getColumnName(i);
-					int colType = meta.getColumnType(i);
-					DataType colDataType = DataType.valueOf(colType);
-					System.out.println("col name: " + colName);
-					System.out.println("col type: " + colType);
-					Column col = new Column(colName, colDataType);
-					columnSet.add(col);
-				}
+				List<Column> columnSet = getColumns(meta);
 				columns.close();
 				
-				Statement rowCountStmt = conn.createStatement();
-				ResultSet rowCountRS = rowCountStmt.executeQuery("SELECT COUNT(*) FROM " + tblName);
+				stmt = conn.createStatement();
+				ResultSet rowCountRS = stmt.executeQuery("SELECT COUNT(*) FROM " + tblName);
 				
 				int count = 0;
 				if (rowCountRS.next()) {
 					count = rowCountRS.getInt(1);
 				}
 				
-				Table table = new Table(tblName, count, columnSet);
+				Table table = new Table(tblName, count, columnSet, db);
 				result.add(table);
 			}
 			
@@ -114,11 +113,60 @@ public class DBHelper {
 		}
 	}
 	
-	private Set<Table> fetchSQLServerTables(Connection conn, DB db) {
+	private List<Table> fetchSQLServerTables(Connection conn, DB db) {
 		return null;
 	}
 	
-	private Set<Table> fetchOracleTables(Connection conn, DB db) {
-		return null;
+	private static final String SELECT_TBL_NAMES = "SELECT table_name FROM dba_tables WHERE owner LIKE ?";
+	
+	private List<Table> fetchOracleTables(Connection conn, DB db) {
+		try {
+			String schemaName = db.getDatabaseName().toUpperCase();
+			PreparedStatement ps = conn.prepareStatement(SELECT_TBL_NAMES);
+			ps.setString(1, schemaName);
+			ResultSet rs = ps.executeQuery();
+			List<String> tableNames = new ArrayList<>();
+			while (rs.next()) {
+				String tblName = rs.getString("table_name");
+				if (tblName.startsWith("EXT_")) {
+					continue;
+				}
+				tableNames.add(tblName);
+			}
+			rs.close();
+			ps.close();
+			
+			System.out.print("tableNames: " + tableNames);
+			List<Table> tables = new ArrayList<>();
+			for (String tableName : tableNames) {
+				String tblName = schemaName + "." + tableName;
+				Statement stmt = conn.createStatement();
+				rs = stmt.executeQuery("SELECT * FROM " + tblName + " WHERE 1 < 0");
+				
+				List<Column> columns = getColumns(rs.getMetaData());
+				
+				rs.close();
+				stmt.close();
+				
+				stmt = conn.createStatement();
+				rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tblName.toLowerCase());
+				
+				int rowCount = 0;
+				if (rs.next()) {
+					rowCount = rs.getInt(1);
+				}
+				
+				rs.close();
+				stmt.close();
+				
+				Table table = new Table(tableName, rowCount, columns, db);
+				System.out.println("table: " + table);
+				tables.add(table);
+			}
+			return tables;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new ArrayList<>();
+		}
 	}
 }

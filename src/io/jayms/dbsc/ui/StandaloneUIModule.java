@@ -1,7 +1,6 @@
 package io.jayms.dbsc.ui;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public abstract class StandaloneUIModule extends AbstractUIModule {
@@ -17,7 +16,7 @@ public abstract class StandaloneUIModule extends AbstractUIModule {
 		if(uiStage == null) {
 			init();
 		}
-		System.out.println("before show");
+		masterUI.openUIModule(this);
 		uiStage.show();
 	}
 	
@@ -26,6 +25,8 @@ public abstract class StandaloneUIModule extends AbstractUIModule {
 		if (!uiStage.isShowing()) {
 			return;
 		}
+		masterUI.closeUIModule(this);
 		uiStage.close();
+		System.out.println("closed ui module");
 	}
 }

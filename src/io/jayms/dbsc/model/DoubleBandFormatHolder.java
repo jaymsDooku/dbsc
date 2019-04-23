@@ -1,35 +1,37 @@
 package io.jayms.dbsc.model;
 
-import java.awt.Color;
-
 import org.json.JSONObject;
 
-import io.jayms.xlsx.model.Style;
+import io.jayms.xlsx.model.DoubleBandFormat;
+import io.jayms.xlsx.model.Workbook;
 import lombok.Getter;
+import lombok.Setter;
 
 public class DoubleBandFormatHolder {
 
-	@Getter private Color color1;
-	@Getter private Color color2;
+	@Getter @Setter private StyleHolder style1;
+	@Getter @Setter private StyleHolder style2;
 	
-	public DoubleBandFormatHolder(Color color1, Color color2) {
-		this.color1 = color1;
-		this.color2 = color2;
+	public DoubleBandFormatHolder(StyleHolder style1, StyleHolder style2) {
+		this.style1 = style1;
+		this.style2 = style2;
+	}
+	
+	public DoubleBandFormat toDoubleBandFormat(Workbook wb) {
+		return new DoubleBandFormat(style1.toStyle(wb), style2.toStyle(wb));
 	}
 	
 	public static JSONObject toJSON(DoubleBandFormatHolder dbFormat) {
 		JSONObject result = new JSONObject();
-		result.put("color1", Style.encodeRGB(dbFormat.color1));
-		result.put("color2", Style.encodeRGB(dbFormat.color2));
+		result.put("style1", StyleHolder.toJSON(dbFormat.getStyle1()));
+		result.put("style2", StyleHolder.toJSON(dbFormat.getStyle2()));
 		return result;
 	}
 	
 	public static DoubleBandFormatHolder fromJSON(JSONObject obj) {
-		int colorEncoded1 = obj.getInt("color1");
-		int colorEncoded2 = obj.getInt("color2");
-		Color color1 = Style.decodeRGB(colorEncoded1);
-		Color color2 = Style.decodeRGB(colorEncoded2);
-		return new DoubleBandFormatHolder(color1, color2);
+		StyleHolder style1 = StyleHolder.fromJSON(obj.getJSONObject("style1"));
+		StyleHolder style2 = StyleHolder.fromJSON(obj.getJSONObject("style2"));
+		return new DoubleBandFormatHolder(style1, style2);
 	}
 	
 }

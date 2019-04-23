@@ -23,8 +23,9 @@ public class RightPane extends AbstractUIModule {
 	
 	private HBox topPane;
 	private TextField pathDisplay;
-	private Button ssFileChooseBtn;
-	private FileChooser ssFileChooser;
+	private Button ssFolderChooseBtn;
+	private FileChooser ssFolderChooser;
+	private TextField ssFileTxt;
 	
 	@Getter private File chosenFile;
 	
@@ -43,25 +44,30 @@ public class RightPane extends AbstractUIModule {
 		topPane = new HBox();
 		topPane.setMaxWidth(Double.MAX_VALUE);
 		
-		chosenFile = new File("test.xlsx");
+		File defFolder = new File(System.getProperty("user.dir"));
+		chosenFile = new File(defFolder, "test.xlsx");
 		
-		ssFileChooser = new FileChooser();
-		ssFileChooser.setTitle("Choose Spreadsheet Destination");
-		ssFileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
-		ssFileChooser.setInitialFileName("test.xlsx");
-		ssFileChooser.getExtensionFilters().add(new ExtensionFilter("Spreadsheet Files", ".xlsx"));
+		ssFileTxt = new TextField(chosenFile.getName());
+		
+		ssFolderChooser = new FileChooser();
+		ssFolderChooser.setTitle("Choose Spreadsheet Destination");
+		ssFolderChooser.setInitialDirectory(defFolder);
+		ssFolderChooser.getExtensionFilters().add(new ExtensionFilter("Spreadsheet Files", ".xlsx"));
 		
 		pathDisplay = new TextField();
-		pathDisplay.textProperty().bind(Bindings.concat(ssFileChooser.initialDirectoryProperty().asString(), "\\", ssFileChooser.initialFileNameProperty().asString()));
+		pathDisplay.textProperty().bind(ssFolderChooser.initialDirectoryProperty().asString());
 		pathDisplay.setEditable(false);
 		HBox.setHgrow(pathDisplay, Priority.ALWAYS);
 		
-		ssFileChooseBtn = new Button("Browse...");
+		ssFolderChooseBtn = new Button("Browse...");
 		
-		ssFileChooseBtn.setOnMouseClicked((e) -> {
-			chosenFile = ssFileChooser.showOpenDialog(masterUI.getStage());
+		ssFolderChooseBtn.setOnMouseClicked((e) -> {
+			File folder = ssFolderChooser.showOpenDialog(masterUI.getStage());
+			String fileName = ssFileTxt.getText();
+			String fileNameExt = fileName + ".xlsx";
+			chosenFile = new File(folder, fileNameExt);
 		});
-		topPane.getChildren().addAll(pathDisplay, ssFileChooseBtn);
+		topPane.getChildren().addAll(pathDisplay, ssFolderChooseBtn, ssFileTxt);
 		
 		workspace = new BorderPane();
 		

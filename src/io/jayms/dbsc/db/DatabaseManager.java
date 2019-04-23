@@ -4,6 +4,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -23,13 +24,17 @@ import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.SQLiteDatabase;
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.ConnectionConfig.CreationResult.Result;
+import io.jayms.dbsc.ui.QueryOptionsUI;
+import io.jayms.dbsc.util.Validation;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DBType;
 import io.jayms.dbsc.model.DoubleBandFormatHolder;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.model.StyleHolder;
+import io.jayms.xlsx.db.DBTools;
 import io.jayms.xlsx.db.Database;
+import io.jayms.xlsx.db.DatabaseColumn;
 import io.jayms.xlsx.db.OracleDatabase;
 import io.jayms.xlsx.db.SQLServerDatabase;
 import io.jayms.xlsx.model.DoubleBandFormat;
@@ -37,6 +42,13 @@ import io.jayms.xlsx.model.FieldConfiguration;
 import io.jayms.xlsx.model.Style;
 import io.jayms.xlsx.util.JSONTools;
 import lombok.Getter;
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.select.FromItem;
+import net.sf.jsqlparser.statement.select.Join;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectItem;
 
 public class DatabaseManager {
 
@@ -55,7 +67,6 @@ public class DatabaseManager {
 	private static final String INSERT_CONNECTION = "INSERT INTO CONNECTION(Hostname) VALUES (?)";
 	private static final String SELECT_CONNECTIONS = "SELECT * FROM CONNECTION LEFT JOIN DBS USING(ConnectionID) LEFT JOIN SSREPORT USING (DBID) LEFT JOIN SSREPORTQUERIES USING(ReportID)LEFT JOIN QUERIES USING (QueryID)";
 	private static final String DELETE_CONNECTION = "DELETE FROM CONNECTION WHERE ConnectionID = ?";
-	private static final String SELECT_CONNECTION = "SELECT * FROM CONNECTION WHERE ConnectionID = ?";
 	private static final String UPDATE_CONNECTION = "UPDATE CONNECTION SET Hostname = ? WHERE ConnectionID = ?";
 	
 	private static final String DB_TBL = "DBS";
@@ -68,11 +79,14 @@ public class DatabaseManager {
 			+ "Username TEXT DEFAULT NULL, "
 			+ "Password TEXT DEFAULT NULL, "
 			+ "DBFilePath TEXT DEFAULT NULL, "
-			+ "ServerName TEXT DEFAULT NULL"
+			+ "ServerName TEXT DEFAULT NULL, "
+			+ "UNIQUE(ConnectionID, DatabaseName) "
+			+ "ON CONFLICT IGNORE"
 			+ ")";
 	private static final String INSERT_DB_SQLITE = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, DBFilePath) VALUES (?, ?, ?, ?)";
 	private static final String INSERT_DB_ORACLE = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, Port, Username, Password) VALUES (?, ?, ?, ?, ?, ?)";
 	private static final String INSERT_DB_SQLSERVER = "INSERT INTO DBS(ConnectionID, DatabaseName, DatabaseType, Port, Username, Password, ServerName) VALUES (?, ?, ?, ?, ?, ?, ?)";
+	private static final String UPDATE_DB = "UPDATE DBS SET DatabaseType = ?, Port = ?, Username = ?, Password = ?, DBFilePath = ?, ServerName = ? WHERE DBID = ?";
 	private static final String SELECT_DB = "SELECT DBID, DatabaseName FROM DBS WHERE ConnectionID = ?";
 	private static final String DELETE_DB = "DELETE FROM DBS WHERE DBID = ?";
 	
@@ -82,9 +96,11 @@ public class DatabaseManager {
 			+ "DBID INTEGER NOT NULL, "
 			+ "WorkbookName TEXT NOT NULL, "
 			+ "DoubleBandFormat TEXT NOT NULL,"
-			+ "TitleStyle TEXT NOT NULL"
+			+ "TitleStyle TEXT NOT NULL,"
+			+ "SubTotalStyle TEXT NOT NULL"
 			+ ")";
-	private static final String INSERT_SSREPORT = "INSERT INTO SSREPORT(DBID, WorkbookName, DoubleBandFormat, TitleStyle) VALUES (?, ?, ?, ?)";
+	private static final String INSERT_SSREPORT = "INSERT INTO SSREPORT(DBID, WorkbookName, DoubleBandFormat, TitleStyle, SubTotalStyle) VALUES (?, ?, ?, ?, ?)";
+	private static final String UPDATE_SSREPORT = "UPDATE SSREPORT SET WorkbookName = ?, DoubleBandFormat = ?, TitleStyle = ?, SubTotalStyle = ? WHERE ReportID = ?";
 	private static final String SELECT_SSREPORT = "SELECT ReportID, WorkbookName FROM SSREPORT WHERE DBID = ?";
 	private static final String DELETE_SSREPORT = "DELETE FROM SSREPORT WHERE ReportID = ?";
 	
@@ -178,17 +194,15 @@ public class DatabaseManager {
 			ps.setString(3, dbItem.getType().toString());
 			ps.setString(4, dbItem.getSqliteDBFile().getAbsolutePath());
 		} else  {
-			ps = conn.prepareStatement((dbItem.getType() == DBType.SQL_SERVER) ? INSERT_DB_SQLSERVER :
-				INSERT_DB_ORACLE, Statement.RETURN_GENERATED_KEYS);
+			ps = conn.prepareStatement((dbItem.getType() == DBType.SQL_SERVER) ? INSERT_DB_SQLSERVER : INSERT_DB_ORACLE, Statement.RETURN_GENERATED_KEYS);
 			ps.setInt(1, connId);
 			ps.setString(2, dbItem.getDatabaseName());
 			ps.setString(3, dbItem.getType().toString());
 			ps.setInt(4, dbItem.getPort());
 			ps.setString(5, dbItem.getUser());
 			ps.setString(6, dbItem.getPass());
-			ps.setString(7, dbItem.getType().toString());
 			if (dbItem.getType() == DBType.SQL_SERVER) {
-				ps.setString(8, dbItem.getServerName());
+				ps.setString(7, dbItem.getServerName());
 			}
 		}
 		
@@ -201,6 +215,7 @@ public class DatabaseManager {
 	private int insertReport(int dbId, Report report) throws SQLException {
 		JSONObject dbFormatJson = DoubleBandFormatHolder.toJSON(report.getDoubleBandFormat());
 		JSONObject titleJson = StyleHolder.toJSON(report.getTitleStyle());
+		JSONObject subTotalJson = StyleHolder.toJSON(report.getSubTotalStyle());
 		
 		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(INSERT_SSREPORT, Statement.RETURN_GENERATED_KEYS);
@@ -208,6 +223,7 @@ public class DatabaseManager {
 		ps.setString(2, report.getWorkbookName());
 		ps.setString(3, dbFormatJson.toString());
 		ps.setString(4, titleJson.toString());
+		ps.setString(5, subTotalJson.toString());
 		ps.executeUpdate();
 		int id = ps.getGeneratedKeys().getInt(1);
 		ps.close();
@@ -219,7 +235,7 @@ public class DatabaseManager {
 		PreparedStatement ps = conn.prepareStatement(INSERT_QUERY, Statement.RETURN_GENERATED_KEYS);
 		ps.setString(1, query.getWorksheetName());
 		ps.setString(2, query.getQuery());
-		ps.setString(3, JSONTools.ToJSON.toJSON(query.getFieldConfigs()).toString());
+		ps.setString(3, query.getFieldConfigs() != null ? JSONTools.ToJSON.toJSON(query.getFieldConfigs()).toString() : null);
 		ps.executeUpdate();
 		int id = ps.getGeneratedKeys().getInt(1);
 		ps.close();
@@ -266,12 +282,46 @@ public class DatabaseManager {
 		return result;
 	}
 	
+	//UPDATE DBS SET DatabaseType = ?, Port = ?, Username = ?, Password = ?, DBFilePath = ?, ServerName = ? WHERE DBID = ?
+	public void updateDB(DB db) throws SQLException {
+		Connection conn = this.db.getConnection();
+		PreparedStatement ps = conn.prepareStatement(UPDATE_DB);
+		ps.setString(1, db.getType().toString());
+		ps.setInt(2, db.getPort());
+		ps.setString(3, db.getUser());
+		ps.setString(4, db.getPass());
+		ps.setString(5, db.getSqliteDBFile() != null ? db.getSqliteDBFile().getAbsolutePath() : null);
+		ps.setString(6, db.getServerName());
+		ps.setInt(7, db.getId());
+		ps.executeUpdate();
+		ps.close();
+	}
+	
+	public void updateReport(Report report) throws SQLException {
+		JSONObject dbFormatJson = DoubleBandFormatHolder.toJSON(report.getDoubleBandFormat());
+		JSONObject titleJson = StyleHolder.toJSON(report.getTitleStyle());
+		JSONObject subTotalJson = StyleHolder.toJSON(report.getSubTotalStyle());
+		
+		Connection conn = db.getConnection();
+		PreparedStatement ps = conn.prepareStatement(UPDATE_SSREPORT);
+		ps.setString(1, report.getWorkbookName());
+		ps.setString(2, dbFormatJson.toString());
+		ps.setString(3, titleJson.toString());
+		ps.setString(4, subTotalJson.toString());
+		ps.setInt(5, report.getId());
+		ps.executeUpdate();
+		ps.close();
+	}
+	
 	public void updateQuery(Query query) throws SQLException {
+		JSONObject fieldConfigJson = query.getFieldConfigs() != null ? JSONTools.ToJSON.toJSON(query.getFieldConfigs()) : null;
+		
 		Connection conn = db.getConnection();
 		PreparedStatement ps = conn.prepareStatement(UPDATE_QUERY);
 		ps.setString(1, query.getWorksheetName());
 		ps.setString(2, query.getQuery());
-		ps.setInt(3, query.getId());
+		ps.setString(3, fieldConfigJson != null ? fieldConfigJson.toString() : null);
+		ps.setInt(4, query.getId());
 		ps.executeUpdate();
 		ps.close();
 	}
@@ -332,12 +382,23 @@ public class DatabaseManager {
 						String dbName = dbItem.getDatabaseName();
 						int dbId = existingDBs.containsKey(dbName) ? 
 								existingDBs.get(dbName) : insertDB(connId, dbItem);
+						if (existingDBs.containsKey(dbName)) {
+							dbId = existingDBs.get(dbName);
+							updateDB(dbItem);
+						} else {
+							dbId = insertDB(connId, dbItem);
+						}
 								
 						Map<String, Integer> existingReports = fetchSSReports(dbId);
 						for (Report report : dbItem.getReports()) {
 							String wbName = report.getWorkbookName();
-							int reportId = existingReports.containsKey(wbName) ?
-									existingReports.get(wbName) : insertReport(dbId, report);
+							int reportId;
+							if (existingReports.containsKey(wbName)) {
+								reportId = existingReports.get(wbName);
+								updateReport(report);
+							} else {
+								reportId = insertReport(dbId, report);
+							}
 									
 							for (Query query : report.getQueries()) {
 								if (query.getId() == -1) {
@@ -373,7 +434,7 @@ public class DatabaseManager {
 			System.out.println("Retrieving cc records...");
 			int id = -1;
 			
-			Map<Integer, Map<String, DBValue>> connMap = new HashMap<>();
+			//Map<Integer, Map<String, DBValue>> connMap = new HashMap<>();
 			Map<String, DBValue> dbMap = new HashMap<>();
 			while (rs.next()) {
 				int nextId = rs.getInt("ConnectionID");
@@ -398,6 +459,7 @@ public class DatabaseManager {
 				String wbName = rs.getString("WorkbookName");
 				String dbFormatJson = rs.getString("DoubleBandFormat");
 				String titleStyleJson = rs.getString("TitleStyle");
+				String subTotalJson = rs.getString("SubTotalStyle");
 				int reportId = rs.getInt("ReportID");
 				String wsName = rs.getString("WorksheetName");
 				String fieldConfigsJson = rs.getString("FieldConfigurations");
@@ -468,13 +530,14 @@ public class DatabaseManager {
 						System.out.println("WSName: " + wsName);
 						System.out.println("Query: " + query);
 						System.out.println("Field Configs: " + fieldConfigsJson);
-						Map<String, FieldConfiguration> fileConfigs = JSONTools.FromJSON.fieldConfigs(new JSONObject(fieldConfigsJson));
+						Map<String, FieldConfiguration> fileConfigs = fieldConfigsJson != null ? JSONTools.FromJSON.fieldConfigs(new JSONObject(fieldConfigsJson)) : null;
 						queryList.add(new QueryHolder(queryId, wsName, query, fileConfigs));
 					}
-					DoubleBandFormat dbFormat = JSONTools.FromJSON.doubleBandFormat(new JSONObject(dbFormatJson));
-					Style titleStyle = JSONTools.FromJSON.style(new JSONObject(titleStyleJson));
+					DoubleBandFormatHolder dbFormat = DoubleBandFormatHolder.fromJSON(new JSONObject(dbFormatJson));
+					StyleHolder titleStyle = StyleHolder.fromJSON(new JSONObject(titleStyleJson));
+					StyleHolder subTotalStyle = StyleHolder.fromJSON(new JSONObject(subTotalJson));
 					
-					queries.put(new ReportKey(reportId, wbName, dbFormat, titleStyle), queryList);
+					queries.put(new ReportKey(reportId, wbName, dbFormat, titleStyle, subTotalStyle), queryList);
 				}
 				dbMap.put(dbName, dbVal);
 				
@@ -524,9 +587,9 @@ public class DatabaseManager {
 				Collection<QueryHolder> queries = queryMap.get(repKey);
 				int repId = repKey.getId();
 				String wsName = repKey.getReportName();
-				Report report = new Report(repId, db, wsName, DBSCGraphicalUserInterface.getDefaultDoubleBandFormat(), DBSCGraphicalUserInterface.getDefaultTitleStyle());
+				Report report = new Report(repId, db, wsName, repKey.getDbFormat(), repKey.getTitleStyle(), repKey.getSubTotalStyle());
 				for (QueryHolder qh : queries) {
-					report.getQueries().add(new Query(qh.getId(), report, qh.getWorksheetName(), qh.getQuery()));
+					report.getQueries().add(new Query(qh.getId(), report, qh.getWorksheetName(), qh.getQuery(), qh.getFieldConfigs()));
 				}
 				reports.add(report);
 			}
@@ -569,6 +632,7 @@ public class DatabaseManager {
 			default:
 				break;
 			}
+			this.connDatabaseCache.put(host, dbName, result);
 		}
 		
 		return result;
@@ -652,14 +716,16 @@ public class DatabaseManager {
 		
 		@Getter private int id;
 		@Getter private String reportName;
-		@Getter private DoubleBandFormat dbFormat;
-		@Getter private Style titleStyle;
+		@Getter private DoubleBandFormatHolder dbFormat;
+		@Getter private StyleHolder titleStyle;
+		@Getter private StyleHolder subTotalStyle;
 		
-		public ReportKey(int id, String reportName, DoubleBandFormat dbFormat, Style titleStyle) {
+		public ReportKey(int id, String reportName, DoubleBandFormatHolder dbFormat, StyleHolder titleStyle, StyleHolder subTotalStyle) {
 			this.id = id;
 			this.reportName = reportName;
 			this.dbFormat = dbFormat;
 			this.titleStyle = titleStyle;
+			this.subTotalStyle = subTotalStyle;
 		}
 		
 		@Override
@@ -715,5 +781,55 @@ public class DatabaseManager {
 			this.query = query;
 			this.fieldConfigs = fieldConfigs;
 		}
+	}
+	
+	public static DatabaseColumn[] getTableFields(DBSCGraphicalUserInterface masterUI, Query query) {
+		String queryContent = query.getQuery();
+		try {
+			net.sf.jsqlparser.statement.Statement stmt = CCJSqlParserUtil.parse(queryContent);
+			if (!(stmt instanceof Select)) {
+				Validation.alert("Must be a select statement.");
+				return null;
+			}
+			
+			StringBuilder selectFields = new StringBuilder();
+			
+			Select selectStmt = (Select) stmt;
+			PlainSelect selectBody = (PlainSelect) selectStmt.getSelectBody();
+			List<SelectItem> selectItems = selectBody.getSelectItems();
+			for (int i = 0; i < selectItems.size(); i++) {
+				SelectItem selectItem = selectItems.get(i);
+				selectFields.append(selectItem.toString());
+				if (i < selectItems.size() - 1) {
+					selectFields.append(", ");
+				}
+			}
+			
+			StringBuilder tableParts = new StringBuilder();
+			FromItem fromItem = selectBody.getFromItem();
+			tableParts.append(fromItem);
+			List<Join> joins = selectBody.getJoins();
+			if (joins != null && !joins.isEmpty()) joins.stream().forEach(j -> tableParts.append(" " + j));
+			
+			String scoutQuery = "SELECT " + selectFields.toString() + " FROM "  + tableParts + " WHERE 1<0";
+			
+			DatabaseManager dbManager = masterUI.getDatabaseManager();
+			Database connDB = dbManager.getDatabaseConnection(query.getReport().getDb());
+			Connection conn = connDB.getConnection();
+			try {
+				System.out.println("scoutQuery: " + scoutQuery);
+				ResultSet rs = conn.createStatement().executeQuery(scoutQuery);
+				ResultSetMetaData meta = rs.getMetaData();
+				System.out.println("rs: " + rs);
+				System.out.println("meta: " + meta.getColumnCount());
+				DatabaseColumn[] dbCols = DBTools.getDatabaseColumns(meta);
+				return dbCols;
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+		} catch (JSQLParserException e1) {
+			Validation.alert("Failed to parse query.");
+		}
+		return null;
 	}
 }

@@ -2,7 +2,6 @@ package io.jayms.dbsc.ui;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.collect.HashMultimap;
@@ -13,12 +12,14 @@ import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.ui.comp.NumberField;
 import io.jayms.xlsx.db.DatabaseColumn;
 import io.jayms.xlsx.model.FieldConfiguration;
+import io.jayms.xlsx.model.cells.SubTotalFunction;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SplitPane;
@@ -63,6 +64,12 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		return result;
 	}
 	
+	private void saveFieldConfig(String selected, FieldConfiguration fieldConfig) {
+		fieldConfigs.put(selected, fieldConfig);
+		query.setFieldConfigs(fieldConfigs);
+		System.out.println("hello fieldConfig: " + fieldConfig);
+	}
+	
 	private void displayOptionsOfField(String selected) {
 		if (!fieldConfigs.containsKey(selected)) return;
 		
@@ -71,19 +78,39 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		Label fieldName = new Label(selected);
 		
 		CheckBox inlineCb = new CheckBox("Inline");
+		System.out.println("fieldConfig: " + fieldConfig);
 		inlineCb.setSelected(fieldConfig.isInline());
 		CheckBox subTotalOnChangeCb = new CheckBox("Sub Total on value change");
 		subTotalOnChangeCb.setSelected(fieldConfig.isSubTotalOnChange());
+		
+		HBox stfContainer = new HBox();
+		Label stfLabel = new Label("Sub Total Function: ");
+		ComboBox<String> subTotalFunctionCmb = new ComboBox<>();
+		subTotalFunctionCmb.getSelectionModel().selectedItemProperty().addListener((ov, o, n) -> {
+			SubTotalFunction subTotalFunction = SubTotalFunction.valueOf(n);
+			fieldConfig.setSubTotalFunction(subTotalFunction);
+			saveFieldConfig(selected, fieldConfig);
+			System.out.println("n word");
+		});
+		Arrays.stream(SubTotalFunction.values()).forEach(v -> {
+			subTotalFunctionCmb.getItems().add(v.toString());
+		});
+		subTotalFunctionCmb.getSelectionModel().select(fieldConfig.getSubTotalFunction().toString());
+		stfContainer.getChildren().addAll(stfLabel, subTotalFunctionCmb);
+		
 		CheckBox swapBandOnChangeCb = new CheckBox("Swap Colour Band on value change");
 		swapBandOnChangeCb.setSelected(fieldConfig.isSwapBandOnChange());
 		inlineCb.selectedProperty().addListener((ov, o, n) -> {
 			fieldConfig.setInline(n);
+			saveFieldConfig(selected, fieldConfig);
 		});
 		subTotalOnChangeCb.selectedProperty().addListener((ov, o, n) -> {
 			fieldConfig.setSubTotalOnChange(n);
+			saveFieldConfig(selected, fieldConfig);
 		});
 		swapBandOnChangeCb.selectedProperty().addListener((ov, o, n) -> {
 			fieldConfig.setSwapBandOnChange(n);
+			saveFieldConfig(selected, fieldConfig);
 		});
 		
 		HBox colWidthCtr = new HBox();
@@ -92,10 +119,11 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		colWidthTxt.onKeyReleasedProperty().set((e) -> {
 			float columnWidth = Float.parseFloat(colWidthTxt.getText());
 			fieldConfig.setColumnWidth(columnWidth);
+			saveFieldConfig(selected, fieldConfig);
 		});
 		colWidthCtr.getChildren().addAll(colWidthLbl, colWidthTxt);
 		queryOptionsDisplay.getChildren().clear();
-		queryOptionsDisplay.getChildren().addAll(fieldName, inlineCb, subTotalOnChangeCb, swapBandOnChangeCb);
+		queryOptionsDisplay.getChildren().addAll(fieldName, inlineCb, subTotalOnChangeCb, stfContainer, swapBandOnChangeCb);
 	}
 	
 	@Override
@@ -109,10 +137,7 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		queryOptionsContainer.setDividerPosition(0, 0.3);
 		queryOptionsContainer.setOrientation(Orientation.HORIZONTAL);
 		
-		fieldConfigs = new HashMap<>();
-		Arrays.stream(fields).forEach(f -> {
-			fieldConfigs.put(f.getName(), FieldConfiguration.getDefaultFieldConfig());
-		});
+		fieldConfigs = FieldConfiguration.getDefaultFieldConfigs(fields, query.getFieldConfigs());
 		
 		fieldsView = new ListView<>();
 		
@@ -143,7 +168,7 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		queryOptionsButtonBar = new HBox();
 		applyOptionsBtn = new Button("Apply Options");
 		applyOptionsBtn.onMouseClickedProperty().set((e) -> {
-			
+			query.setFieldConfigs(fieldConfigs);
 			close();
 		});
 		

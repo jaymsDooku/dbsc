@@ -8,26 +8,29 @@ import com.google.common.collect.Lists;
 
 import io.jayms.xlsx.model.WorksheetDescriptor;
 import lombok.Getter;
+import lombok.Setter;
 
 public class Report {
 
 	@Getter private final int id;
 	@Getter private final DB db;
-	@Getter private String workbookName;
-	@Getter private DoubleBandFormatHolder doubleBandFormat;
-	@Getter private StyleHolder titleStyle;
-	@Getter private List<Query> queries;
+	@Getter @Setter private String workbookName;
+	@Getter @Setter private DoubleBandFormatHolder doubleBandFormat;
+	@Getter @Setter private StyleHolder titleStyle;
+	@Getter @Setter private StyleHolder subTotalStyle;
+	@Getter @Setter private List<Query> queries;
 	
-	public Report(DB db, String workbookName, DoubleBandFormatHolder doubleBandFormat, StyleHolder titleStyle, Query... queries) {
-		this(-1, db, workbookName, doubleBandFormat, titleStyle, queries);
+	public Report(DB db, String workbookName, DoubleBandFormatHolder doubleBandFormat, StyleHolder titleStyle, StyleHolder subTotalStyle, Query... queries) {
+		this(-1, db, workbookName, doubleBandFormat, titleStyle, subTotalStyle, queries);
 	}
 	
-	public Report(int id, DB db, String workbookName, DoubleBandFormatHolder doubleBandFormat, StyleHolder titleStyle, Query... queries) {
+	public Report(int id, DB db, String workbookName, DoubleBandFormatHolder doubleBandFormat, StyleHolder titleStyle, StyleHolder subTotalStyle, Query... queries) {
 		this.id = id;
 		this.db = db;
 		this.workbookName = workbookName;
 		this.doubleBandFormat = doubleBandFormat;
 		this.titleStyle = titleStyle;
+		this.subTotalStyle = subTotalStyle;
 		this.queries = Lists.newArrayList(queries);
 	}
 	

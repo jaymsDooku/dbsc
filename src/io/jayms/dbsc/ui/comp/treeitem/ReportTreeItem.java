@@ -3,12 +3,11 @@ package io.jayms.dbsc.ui.comp.treeitem;
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.NewQueryUI;
-import io.jayms.dbsc.ui.NewReportUI;
+import io.jayms.dbsc.ui.ReportUI;
 import io.jayms.dbsc.util.ComponentFactory;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
-import javafx.scene.input.MouseButton;
 
 public class ReportTreeItem extends DBSCTreeItem {
 
@@ -43,6 +42,7 @@ public class ReportTreeItem extends DBSCTreeItem {
 		});
 		MenuItem settings = new MenuItem("Settings");
 		settings.setOnAction(e -> {
+			new ReportUI(masterUI, report.getDb(), report).show();
 		});
 		MenuItem deleteConn = new MenuItem("Delete Report");
 		deleteConn.setOnAction(e -> {

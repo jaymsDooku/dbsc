@@ -7,6 +7,7 @@ import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.QueryTreeItem;
+import io.jayms.xlsx.model.FieldConfiguration;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -114,7 +115,7 @@ public class NewQueryUI extends StandaloneUIModule {
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
 		
-		Query query = new Query(selectedReport, queryName, "");
+		Query query = new Query(selectedReport, queryName, "", null);
 		
 		TreeItem<DBSCTreeItem> reportTreeItem = connTreeView.getReportTreeItem(selectedReport);
 		TreeItem<DBSCTreeItem> queryTreeItem = new TreeItem<>(new QueryTreeItem(masterUI, query));
