@@ -79,13 +79,14 @@ public class ActionBar extends AbstractUIModule {
 		}
 		
 		Object tabUserData = selectedTab.getUserData();
-		if (!(tabUserData instanceof Query)) {
+		if (!(tabUserData instanceof QueryTabData)) {
 			Alert alert = new Alert(AlertType.ERROR, "You need to have a query open!", ButtonType.OK);
 			alert.showAndWait();
 			return;
 		}
 		
-		Query query = (Query) tabUserData;
+		QueryTabData queryTabData = (QueryTabData) tabUserData;
+		Query query = queryTabData.getQuery();
 		Report report = query.getReport();
 		DB selectedDB = report.getDb();
 		QueryBuilderUI queryBuilderUI = new QueryBuilderUI(masterUI, selectedDB);

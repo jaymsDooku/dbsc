@@ -3,7 +3,7 @@ package io.jayms.dbsc.ui.comp.treeitem;
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DBType;
-import io.jayms.dbsc.ui.EditDatabaseUI;
+import io.jayms.dbsc.ui.DatabaseUI;
 import io.jayms.dbsc.ui.ReportUI;
 import io.jayms.dbsc.util.ComponentFactory;
 import javafx.scene.control.ContextMenu;
@@ -29,18 +29,14 @@ public class DBTreeItem extends DBSCTreeItem {
 	@Override
 	public boolean isActive() {
 		boolean isActive = true;
-		System.out.println(db.getType());
-		System.out.println(db.getSqliteDBFile());
 		if (db.getType() == DBType.SQLITE) {
 			isActive = db.getSqliteDBFile().exists();
 		}
-		System.out.println("isActive: " + isActive);
 		return isActive;
 	}
 
 	@Override
 	public void click() {
-		System.out.println("hello is it me ur looking for");
 	}
 	
 	@Override
@@ -56,7 +52,7 @@ public class DBTreeItem extends DBSCTreeItem {
 		});
 		MenuItem editDB = new MenuItem("Edit DB");
 		editDB.setOnAction(e -> {
-			new EditDatabaseUI(masterUI, db).show();
+			new DatabaseUI(masterUI, null, db).show();
 		});
 		MenuItem deleteConn = new MenuItem("Delete Database");
 		deleteConn.setOnAction(e -> {

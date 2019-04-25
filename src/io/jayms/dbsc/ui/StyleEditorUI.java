@@ -8,6 +8,7 @@ import io.jayms.dbsc.model.StyleHolder;
 import io.jayms.dbsc.ui.comp.NumberField;
 import io.jayms.dbsc.ui.comp.colorpicker.DBSCColorPicker;
 import io.jayms.dbsc.util.GeneralUtils;
+import io.jayms.dbsc.util.Validation;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -186,6 +187,12 @@ public class StyleEditorUI extends StandaloneUIModule {
 	private void onEditStyle() {
 		String fontName = fontFamilyCmb.getSelectionModel().getSelectedItem();
 		int fontSize = fontSizeTxt.getValue();
+		
+		if (fontSize < 0) {
+			Validation.alert("Font size must be greater than 0.");
+			return;
+		}
+		
 		Color fontClr = fontClrPkr.getValue();
 		Color fillClr = fillPkr.getValue();
 		

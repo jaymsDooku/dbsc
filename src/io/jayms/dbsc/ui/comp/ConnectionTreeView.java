@@ -156,7 +156,9 @@ public class ConnectionTreeView extends AbstractUIModule {
 		if (treeItem == null) return;
         
         if (e.getButton() == MouseButton.SECONDARY) {
-        	treeItem.getContextMenu().show(node, Side.RIGHT, 0, 0);
+        	if (treeItem.getContextMenu() != null) {
+        		treeItem.getContextMenu().show(node, Side.RIGHT, 0, 0);
+        	}
         	return;
         }
         
@@ -178,12 +180,15 @@ public class ConnectionTreeView extends AbstractUIModule {
 	}
 	
 	public TreeItem<DBSCTreeItem> getDatabaseTreeItem(DB db) {
-		System.out.println("cc: " + db.getConnConfig());
-		TreeItem<DBSCTreeItem> ccTreeItem = getConnectionTreeItem(db.getConnConfig());
+		return getDatabaseTreeItem(db.getConnConfig(), db.getDatabaseName());
+	}
+	
+	public TreeItem<DBSCTreeItem> getDatabaseTreeItem(ConnectionConfig cc, String dbName) {
+		TreeItem<DBSCTreeItem> ccTreeItem = getConnectionTreeItem(cc);
 		
 		if (ccTreeItem == null) return null;
 		
-		return getTreeItem(ccTreeItem.getChildren(), db.getDatabaseName());
+		return getTreeItem(ccTreeItem.getChildren(), dbName);
 	}
 	
 	public TreeItem<DBSCTreeItem> getReportTreeItem(Report report) {
@@ -192,6 +197,12 @@ public class ConnectionTreeView extends AbstractUIModule {
 		if (dbTreeItem == null) return null;
 		
 		return getTreeItem(dbTreeItem.getChildren(), report.getWorkbookName());
+	}
+	
+	public TreeItem<DBSCTreeItem> getQueryTreeItem(Query query) {
+		TreeItem<DBSCTreeItem> reportTreeItem = getReportTreeItem(query.getReport());
+		
+		return getTreeItem(reportTreeItem.getChildren(), query.getWorksheetName());
 	}
 	
 	private TreeItem<DBSCTreeItem> getTreeItem(ObservableList<TreeItem<DBSCTreeItem>> list, String val) {

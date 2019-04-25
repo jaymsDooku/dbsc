@@ -32,9 +32,10 @@ import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 
-public class RegisterDatabaseUI extends StandaloneUIModule {
+public class DatabaseUI extends StandaloneUIModule {
 
 	private final ConnectionConfig selectedConnConfig;
+	private final DB selectedDB;
 	
 	private Scene newDBScene;
 	private VBox newDBRoot;
@@ -57,7 +58,7 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 	private void newDBTitle() {
 		newDBTitleCtr = new HBox();
 		newDBTitleCtr.setAlignment(Pos.CENTER);
-		newDBTitle = new Label("New Database");
+		newDBTitle = new Label((selectedDB == null ? "New" : "Edit") + " Database");
 		newDBTitle.setFont(Font.font("Arial", 20));
 		newDBTitle.setAlignment(Pos.CENTER);
 		newDBTitleCtr.getChildren().add(newDBTitle);
@@ -73,6 +74,11 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		dbNameLbl = new Label("DB Name: ");
 		dbNameTxt = new TextField();
 		dbNameTxt.setPromptText("Enter DB name");
+		
+		if (selectedDB != null) {
+			dbNameTxt.setText(selectedDB.getDatabaseName());
+		}
+		
 		dbNameCtr.getChildren().addAll(dbNameLbl, dbNameTxt);
 	}
 	
@@ -160,8 +166,13 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		
 		dbFileChooserLbl = new Label("DB File: ");
 		
+		File initialDir = new File(System.getProperty("user.dir"));
+		if (selectedDB != null && selectedDB.getType() == DBType.SQLITE) {
+			initialDir = selectedDB.getSqliteDBFile().getParentFile();
+		}
+		
 		dbFileChooser = new FileChooser();
-		dbFileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
+		dbFileChooser.setInitialDirectory(initialDir);
 		ExtensionFilter extFilter = new ExtensionFilter("SQLite Database (*.sqlite)", "*.sqlite");
 		dbFileChooser.getExtensionFilters().add(extFilter);
 		
@@ -187,6 +198,9 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		portLbl = new Label("Port: ");
 		portTxt = new NumberField();
 		portTxt.setPromptText("Enter port");
+		if (selectedDB != null && selectedDB.getType() != DBType.SQLITE) {
+			portTxt.setValue(selectedDB.getPort());
+		}
 		portCtr.getChildren().addAll(portLbl, portTxt);
 	}
 	
@@ -200,6 +214,9 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		userLbl = new Label("User: ");
 		userTxt = new TextField();
 		userTxt.setPromptText("Enter user");
+		if (selectedDB != null && selectedDB.getType() != DBType.SQLITE) {
+			userTxt.setText(selectedDB.getUser());
+		}
 		userCtr.getChildren().addAll(userLbl, userTxt);
 	}
 	
@@ -213,6 +230,9 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		passLbl = new Label("Pass: ");
 		passTxt = new PasswordField();
 		passTxt.setPromptText("Enter pass");
+		if (selectedDB != null && selectedDB.getType() != DBType.SQLITE) {
+			passTxt.setText(selectedDB.getPass());
+		}
 		passCtr.getChildren().addAll(passLbl, passTxt);
 	}
 	
@@ -228,6 +248,9 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		
 		dbServerNameTxt = new TextField();
 		dbServerNameTxt.setPromptText("Enter server name");
+		if (selectedDB != null && selectedDB.getType() == DBType.SQL_SERVER) {
+			dbServerNameTxt.setText(selectedDB.getServerName());
+		}
 		
 		dbServerNameCtr.getChildren().addAll(dbServerNameLbl, dbServerNameTxt);
 	}
@@ -238,7 +261,7 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 	private void registerDBBtn() {
 		registerDBBtnCtr = new HBox();
 		registerDBBtnCtr.setAlignment(Pos.CENTER);
-		registerDBBtn = new Button("Register Database");
+		registerDBBtn = new Button((selectedDB == null ? "Register" : "Edit") + " Database");
 		EventHandler<MouseEvent> registerBtnPress = (MouseEvent e) -> {
 			onRegisterDB();
 		};
@@ -246,17 +269,19 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		registerDBBtnCtr.getChildren().add(registerDBBtn);
 	}
 	
-	public RegisterDatabaseUI(DBSCGraphicalUserInterface masterUI, ConnectionConfig connConfig) {
+	public DatabaseUI(DBSCGraphicalUserInterface masterUI, ConnectionConfig connConfig, DB db) {
 		super(masterUI);
 		this.selectedConnConfig = connConfig;
+		this.selectedDB = db;
 	}
 	
 	@Override
 	public void init() {
 		super.init();
 		
-		uiStage = initStage("Register New Database");
+		uiStage = initStage((selectedDB == null ? "Register New" :  "Edit") + " Database"); // tertiary operator depending if we're creating or editing
 		
+		//initialize
 		newDBScene();
 		
 		newDBTitle();
@@ -293,13 +318,17 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 	public void show() {
 		super.show();
 		for (DBType dbType : DBType.values()) {
-			if (dbType == DBType.SQLITE && !selectedConnConfig.isLocalHost()) {
+			if (selectedConnConfig != null && dbType == DBType.SQLITE && !selectedConnConfig.isLocalHost()) {
 				continue;
 			}
 			dbTypeCmb.getItems().add(dbType.toString().toLowerCase());
 		}
 		if (!dbTypeCmb.getItems().isEmpty()) {
-			dbTypeCmb.getSelectionModel().select(0);
+			if (selectedDB != null) {
+				dbTypeCmb.getSelectionModel().select(selectedDB.getType().toString().toLowerCase());
+			} else {
+				dbTypeCmb.getSelectionModel().select(0);
+			}
 			selectedDBType = DBType.valueOf(dbTypeCmb.getSelectionModel().getSelectedItem().toUpperCase());
 		}
 	}
@@ -322,7 +351,7 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 			return;
 		}
 		
-		if (selectedConnConfig.hasDB(dbName)) {
+		if (selectedDB == null && selectedConnConfig.hasDB(dbName)) { // if we're creating new db, and one already exists, reject
 			Validation.alert("This connection config already has a database with that name!");
 			return;
 		}
@@ -336,7 +365,13 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 		
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
-		DB db;
+		DB db = selectedDB;
+		boolean creating = db == null;
+		String oldDBName = db.getDatabaseName();
+		if (!creating) {
+			db.setDatabaseName(dbName);
+			db.setType(dbType);
+		}
 		if (dbType == DBType.SQLITE) {
 			File dbFile = this.dbFileChosen;
 			if (dbFile == null) {
@@ -347,7 +382,11 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 				Validation.alert("DB File needs to have a .sqlite extension.");
 				return;
 			}
-			db = new DB(selectedConnConfig, dbName, dbFile);
+			if (creating) {
+				db = new DB(selectedConnConfig, dbName, dbFile);
+			} else {
+				db.setSqliteDBFile(dbFile);
+			}
 		} else {
 			String serverName = null;
 			if (dbType == DBType.SQL_SERVER) {
@@ -381,18 +420,31 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 				return;
 			}
 			
-			db = (dbType == DBType.SQL_SERVER) ? new DB(selectedConnConfig, dbName, port, user, pass, serverName) :
-				new DB(selectedConnConfig, dbName, port, user, pass);
+			if (creating) {
+				db = (dbType == DBType.SQL_SERVER) ? new DB(selectedConnConfig, dbName, port, user, pass, serverName) :
+					new DB(selectedConnConfig, dbName, port, user, pass);
+			} else {
+				db.setUser(user);
+				db.setPass(pass);
+				db.setPort(port);
+				db.setServerName(serverName);
+			}
 		}
 		
-		selectedConnConfig.getDbs().add(db);
-		
-		TreeItem<DBSCTreeItem> ccTreeItem = connTreeView.getConnectionTreeItem(selectedConnConfig);
-		TreeItem<DBSCTreeItem> dbTreeItem = new TreeItem<>(new DBTreeItem(masterUI, db));
-		ccTreeItem.getChildren().add(dbTreeItem);
-		
-		System.out.println("Creating new database: " + db);
+		if (creating) {
+			selectedConnConfig.getDbs().add(db);
+			TreeItem<DBSCTreeItem> ccTreeItem = connTreeView.getConnectionTreeItem(selectedConnConfig);
+			TreeItem<DBSCTreeItem> dbTreeItem = new TreeItem<>(new DBTreeItem(masterUI, db));
+			ccTreeItem.getChildren().add(dbTreeItem); // new database tree item
+			
+			System.out.println("Creating new database: " + db);
+		} else {
+			TreeItem<DBSCTreeItem> dbTreeItem = connTreeView.getDatabaseTreeItem(db.getConnConfig(), oldDBName); 
+			dbTreeItem.getValue().getTxt().setText(db.getDatabaseName()); // update tree item name
+		}
+
 		close();
 	}
 
 }
+

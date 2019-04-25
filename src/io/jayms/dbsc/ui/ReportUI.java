@@ -192,7 +192,7 @@ public class ReportUI extends StandaloneUIModule {
 		FontHolder font = new FontHolder("Arial", 12, false, StyleTable.COLORS[0]);
 		this.band1Style = selectedReport != null ? selectedReport.getDoubleBandFormat().getStyle1() : new StyleHolder(font, StyleTable.COLORS[6]);
 		this.band2Style = selectedReport != null ? selectedReport.getDoubleBandFormat().getStyle2() : new StyleHolder(font, StyleTable.COLORS[7]);
-		this.titleStyle = selectedReport != null ? selectedReport.getTitleStyle() : new StyleHolder(font, StyleTable.COLORS[8]);
+		this.titleStyle = selectedReport != null ? selectedReport.getTitleStyle() : DBSCGraphicalUserInterface.getDefaultTitleStyle();
 		this.subTotalStyle = selectedReport != null ? selectedReport.getSubTotalStyle() : new StyleHolder(font, StyleTable.COLORS[9]);
 	}
 	
@@ -244,7 +244,7 @@ public class ReportUI extends StandaloneUIModule {
 	private void onNewReport() {
 		String reportName = reportNameTxt.getText();
 		
-		if (reportName == null || reportName.isEmpty()) {
+		if (Validation.sanityString(reportName)) {
 			Validation.alert("You need to specify a report name!");
 			return;
 		}

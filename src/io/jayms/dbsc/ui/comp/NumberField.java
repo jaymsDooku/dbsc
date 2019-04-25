@@ -17,6 +17,10 @@ public class NumberField extends TextField {
 		};
 		this.addEventHandler(KeyEvent.KEY_TYPED, portTxtType);
 	}
+	
+	public void setValue(int val) {
+		setText(Integer.toString(val));
+	}
 
 	public int getValue() throws NumberFormatException {
 		String text = this.getText();

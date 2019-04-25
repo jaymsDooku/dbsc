@@ -4,9 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
+import java.net.InetAddress;
 import java.sql.SQLException;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -19,8 +17,16 @@ import org.xml.sax.SAXException;
 
 import javafx.scene.paint.Color;
 
-public class GeneralUtils {
+/**
+ * Class full of helper methods. Declared final as it should never be inherited; static helper methods only.
+ */
+public final class GeneralUtils {
 
+	/**
+	 * Converts a java.awt.Color object to javafx.scene.paint.Color object.
+	 * @param awtColor - Awt Color to convert.
+	 * @return - JavaFX version of same color.
+	 */
 	public static Color awtToJavaFXColor(java.awt.Color awtColor) {
 		int r = awtColor.getRed();
 		int g = awtColor.getGreen();
@@ -31,6 +37,11 @@ public class GeneralUtils {
 		return fxColor;
 	}
 	
+	/**
+	 * Converts a javafx.scene.paint.Color object to java.awt.Color object.
+	 * @param fx - javafx Color to convert.
+	 * @return - Awt version of same color.
+	 */
 	public static java.awt.Color javafxToAwtColor(Color fx) {
 		java.awt.Color awtColor = new java.awt.Color((float) fx.getRed(),
                 (float) fx.getGreen(),
@@ -39,26 +50,33 @@ public class GeneralUtils {
 		return awtColor;
 	}
 	
-	public static boolean ping(String address, int port) {
-		SocketAddress sockAddr = new InetSocketAddress(address, port);
-		
-		Socket socket = new Socket();
-		boolean online = true;
-		
+	/**
+	 * How long to wait before timing out on address.
+	 */
+	private static final int TIMEOUT = 10000;
+	
+	/**
+	 * Returns true if able to reach ip address, otherwise returns false. 
+	 * @param address - address to check.
+	 * @return - Returns whether the address is reachable.
+	 */
+	public static boolean isReachable(String address) {
 		try {
-			socket.connect(sockAddr, 1000);
-		} catch (IOException ioException) {
-			online = false;
-		} finally {
-			try {
-				socket.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			return InetAddress.getByName(address).isReachable(TIMEOUT);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
 		}
-		return online;
 	}
 	
+	/**
+	 * Convert XML string to org.w3c.dom.Document.
+	 * @param str - the XML in string form to convert.
+	 * @return - the converted XML document.
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 * @throws IOException
+	 */
 	public static Document toXMLDocument(String str) throws ParserConfigurationException, SAXException, IOException {
 		DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
@@ -66,6 +84,11 @@ public class GeneralUtils {
 		return document;
 	}
 	
+	/**
+	 * Converts a CLOB retrieved from a SQL database to its string form.
+	 * @param data
+	 * @return - Returns the converted string form of CLOB.
+	 */
 	public static String clobToString(java.sql.Clob data)
 	{
 	    final StringBuilder sb = new StringBuilder();

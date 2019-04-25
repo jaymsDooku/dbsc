@@ -8,12 +8,15 @@ import io.jayms.dbsc.util.DBHelper;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * 
+ */
 public class DB {
 	
 	@Getter private final int id;
 	@Getter private final ConnectionConfig connConfig;
-	@Getter private String serverName;
-	@Getter private String databaseName;
+	@Getter @Setter private String serverName;
+	@Getter @Setter private String databaseName;
 	
 	@Getter @Setter private int port;
 	@Getter @Setter private String user;

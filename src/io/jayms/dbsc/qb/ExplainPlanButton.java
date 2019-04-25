@@ -181,4 +181,12 @@ public class ExplainPlanButton extends Button {
 		
 		qbUI.updateExplainPlanTable(sqliteOpTable);
 	}
+	
+	private void explainPlanSQLServer(Connection conn, String query) {
+		
+	}
+	
+	private void displayPlanSQLServer(Set<SQLServerOperation> ssOps) {
+		
+	}
 }

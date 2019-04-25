@@ -5,9 +5,14 @@ import io.jayms.dbsc.util.ComponentFactory;
 import javafx.event.EventHandler;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
-import javafx.scene.input.MouseButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.input.MouseEvent;
 
+/**
+ * Represents the root tree item of the connection tree view. The first and top tree item.
+ * 
+ * Used to access the create connection UI to create new connection configs.
+ */
 public class RootTreeItem extends DBSCTreeItem {
 	
 	public RootTreeItem(DBSCGraphicalUserInterface masterUI) {
@@ -32,6 +37,12 @@ public class RootTreeItem extends DBSCTreeItem {
 	
 	@Override
 	public ContextMenu getContextMenu() {
-		return null;
+		ContextMenu rootCM = new ContextMenu();
+		MenuItem newConn = new MenuItem("New Connection");
+		newConn.setOnAction(e -> {
+			masterUI.getCreateConnectionUI().show();
+		});
+		rootCM.getItems().addAll(newConn);
+		return rootCM;
 	}
 }

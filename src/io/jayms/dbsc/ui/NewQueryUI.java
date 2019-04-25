@@ -7,6 +7,7 @@ import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.ui.comp.LeftPane;
 import io.jayms.dbsc.ui.comp.treeitem.DBSCTreeItem;
 import io.jayms.dbsc.ui.comp.treeitem.QueryTreeItem;
+import io.jayms.dbsc.util.Validation;
 import io.jayms.xlsx.model.FieldConfiguration;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -112,6 +113,12 @@ public class NewQueryUI extends StandaloneUIModule {
 	
 	private void onNewQuery() {
 		String queryName = queryNameTxt.getText();
+		
+		if (Validation.sanityString(queryName)) {
+			Validation.alert("Query name cannot be left empty.");
+			return;
+		}
+		
 		LeftPane leftPane = masterUI.getLeftPane();
 		ConnectionTreeView connTreeView = leftPane.getConnections();
 		
