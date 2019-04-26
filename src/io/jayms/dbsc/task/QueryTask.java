@@ -44,12 +44,17 @@ public class QueryTask extends Task<QueryTaskResult> {
 		
 		masterUI.getRightPane().getActionBar().updateStatus("Running Query Task " + taskId +  " - Constructing Worksheet from Query");
 		String worksheetName = query.getWorksheetName();
+		System.out.println("1");
+		System.out.println("report: " + report);
 		Workbook wb = new Workbook(report.getWorkbookName());
+		System.out.println("title style: " + report.getTitleStyle());
+		System.out.println("title style2: " + report.getDoubleBandFormat());
 		wb.setTitleStyle(report.getTitleStyle().toStyle(wb));
 		wb.setSubTotalStyle(report.getTitleStyle().toStyle(wb));
 		wb.setColourFormat(report.getDoubleBandFormat().toDoubleBandFormat(wb));
+		System.out.println("about to query");
 		Worksheet worksheet = converter.addQueryToWorksheet(wb, worksheetName, query.getQuery());
-		
+			
 		masterUI.getRightPane().getActionBar().updateStatus("Running Query Task " + taskId +  " - Writing to file");
 		File file = masterUI.getRightPane().getChosenFile();
 		

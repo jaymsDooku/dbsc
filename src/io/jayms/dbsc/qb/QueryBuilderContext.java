@@ -71,7 +71,7 @@ public class QueryBuilderContext {
 		
 		result.append(fieldsPart);
 		result.append(" ");
-		if (applyFormatting) result.append("\n");
+		if (applyFormatting) result.append("\n\t");
 		result.append("FROM ");
 		
 		StringBuilder tablesPart = new StringBuilder();
@@ -104,7 +104,7 @@ public class QueryBuilderContext {
 				if (i == 0) {
 					tablesPart.append(tableName1 + " ");
 				}
-				if (applyFormatting) tablesPart.append("\n");
+				if (applyFormatting) tablesPart.append("\n\t");
 				tablesPart.append("JOIN ");
 				tablesPart.append(tableName2);
 				tablesPart.append(" ON ");

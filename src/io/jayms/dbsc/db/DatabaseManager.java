@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 import org.json.JSONObject;
@@ -24,22 +25,19 @@ import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.SQLiteDatabase;
 import io.jayms.dbsc.model.ConnectionConfig;
 import io.jayms.dbsc.model.ConnectionConfig.CreationResult.Result;
-import io.jayms.dbsc.ui.QueryOptionsUI;
-import io.jayms.dbsc.util.Validation;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.model.DBType;
 import io.jayms.dbsc.model.DoubleBandFormatHolder;
 import io.jayms.dbsc.model.Query;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.model.StyleHolder;
+import io.jayms.dbsc.util.Validation;
 import io.jayms.xlsx.db.DBTools;
 import io.jayms.xlsx.db.Database;
 import io.jayms.xlsx.db.DatabaseColumn;
 import io.jayms.xlsx.db.OracleDatabase;
 import io.jayms.xlsx.db.SQLServerDatabase;
-import io.jayms.xlsx.model.DoubleBandFormat;
 import io.jayms.xlsx.model.FieldConfiguration;
-import io.jayms.xlsx.model.Style;
 import io.jayms.xlsx.util.JSONTools;
 import lombok.Getter;
 import net.sf.jsqlparser.JSQLParserException;
@@ -600,26 +598,18 @@ public class DatabaseManager {
 			PreparedStatement ps = conn.prepareStatement(SELECT_CONNECTIONS); // Prepare statement with select query of all data.
 			ResultSet rs = ps.executeQuery();
 			
-			int id = -1; // Previous record connection ID.
-			int i = 0;
-			String host = null;
 			
-			Map<String, DBValue> dbMap = new HashMap<>();
+			Map<ConnectionKey, Map<String, DBValue>> connMap = new HashMap<>();
 			while (rs.next()) { // Iterate over all records in the result set.
-				int nextId = rs.getInt("ConnectionID"); // Get connection ID.
-				if (i == 0) {
-					id = nextId;
-				}
-				System.out.println("ID =" + id + " | NEXT_ID=" + nextId);
-				if (id != nextId) {
-					ConnectionConfig cc = constructConnectionConfig(id == -1 ? nextId : id, host, dbMap);
-					connConfigCache.put(host, cc);
-					id = nextId;
-					dbMap.clear();
-					System.out.println("CREATED IT LETS GO");
-				}
+				int id = rs.getInt("ConnectionID"); // Get connection ID.
+				String host = rs.getString("Hostname");
 				
-				host = rs.getString("Hostname");
+				Map<String, DBValue> dbMap = connMap.get(new ConnectionKey(id, host)); // get database store for this connection config
+				
+				if (dbMap == null) { // oh it doesn't exist yet, let's make new map
+					dbMap = new HashMap<>();
+				}
+				System.out.println("dbMap: " + dbMap);
 				
 				//debug
 				System.out.println("host: " + host);
@@ -644,6 +634,9 @@ public class DatabaseManager {
 				String dbTypeStr = rs.getString("DatabaseType");
 				String dbFilePath = rs.getString("DBFilePath"); //allowed to be null if not sqlite
 				String serverName = rs.getString("ServerName"); //allowed to be null if not server required
+				int port = rs.getInt("Port");
+				String user = rs.getString("Username");
+				String pass = rs.getString("Password");
 				
 				//debug
 				System.out.println("dbId: " + dbId);
@@ -659,68 +652,51 @@ public class DatabaseManager {
 				System.out.println("dbTypeStr: " + dbTypeStr);
 				System.out.println("dbFilePath: " + dbFilePath);
 				System.out.println("serverName: " + serverName);
-				
-				if (dbTypeStr == null) { // Ensure database type isn't null.
-					System.out.println("Database Type is null.");
-					continue;
-				}
-				
-				//More retrieval of data.
-				int port = rs.getInt("Port");
-				String user = rs.getString("Username");
-				String pass = rs.getString("Password");
-				
 				System.out.println("port: " + port);
 				System.out.println("user: " + user);
 				System.out.println("pass: " + pass);
 				
-				DBType dbType = DBType.valueOf(dbTypeStr.toUpperCase()); // Convert textual representation of database type to enumeration.
+				if (dbName != null) {
+					DBType dbType = dbTypeStr != null ? DBType.valueOf(dbTypeStr.toUpperCase()) : null; // Convert textual representation of database type to enumeration.
 				
-				if (dbFilePath == null && dbType == DBType.SQLITE) { // SQLite Databases must have a DBFilepath.
-					continue;
-				}
-				
-				if ((port == -1 || user == null || pass == null) && (dbType != DBType.SQLITE)) { // These fields can't be null if it is a SQLServer or Oracle database.
-					continue;
-				}
-				
-				DBValue dbVal;
-				Map<ReportKey, List<QueryHolder>> queries;
-				if (dbMap.containsKey(dbName)) { // If DBValue already initialized in the map, retrieve and populate local variables.
-					dbVal = dbMap.get(dbName);
-					queries = dbVal.getQueries();
-				} else { // If not, initialize local variables.
-					queries = new HashMap<>();
-					File dbFile = dbFilePath == null ? null : new File(dbFilePath);
-					dbVal = new DBValue(dbId, dbType, queries, dbFile, serverName, port, user, pass); // New DBVal with all the retrieved data.
-				}
-				if (wbName != null) { // If there is a report name for this record, there's a report so let's handle it.
-					ReportKey key = queries.keySet().stream().filter(k -> k.getReportName().equals(wbName)).findFirst().orElse(null); // Get report.
-					List<QueryHolder> queryList = queries.get(key); // Get list of queries for report.
-					
-					if (queryList == null) queryList = new ArrayList<>(); // Instantiate new list of queries if doesn't exist yet.
-					
-					if (queryId > 0 && wsName != null && query != null) { // If this record has the data required for a query, let's keep it.
-						Map<String, FieldConfiguration> fileConfigs = fieldConfigsJson != null ? JSONTools.FromJSON.fieldConfigs(new JSONObject(fieldConfigsJson)) : null;
-						queryList.add(new QueryHolder(queryId, wsName, query, fileConfigs)); // Add query data to list of queries.
+					DBValue dbVal;
+					Map<ReportKey, List<QueryHolder>> queries;
+					if (dbMap.containsKey(dbName)) { // If DBValue already initialized in the map, retrieve and populate local variables.
+						dbVal = dbMap.get(dbName);
+						queries = dbVal.getQueries();
+					} else { // If not, initialize local variables.
+						queries = new HashMap<>();
+						File dbFile = dbFilePath == null ? null : new File(dbFilePath);
+						dbVal = new DBValue(dbId, dbType, queries, dbFile, serverName, port, user, pass); // New DBVal with all the retrieved data.
 					}
-					DoubleBandFormatHolder dbFormat = DoubleBandFormatHolder.fromJSON(new JSONObject(dbFormatJson));
-					StyleHolder titleStyle = StyleHolder.fromJSON(new JSONObject(titleStyleJson));
-					StyleHolder subTotalStyle = StyleHolder.fromJSON(new JSONObject(subTotalJson));
-					
-					queries.put(new ReportKey(reportId, wbName, dbFormat, titleStyle, subTotalStyle), queryList); // Add report data to report/queries map.
+					if (wbName != null) { // If there is a report name for this record, there's a report so let's handle it.
+						ReportKey key = queries.keySet().stream().filter(k -> k.getReportName().equals(wbName)).findFirst().orElse(null); // Get report.
+						List<QueryHolder> queryList = queries.get(key); // Get list of queries for report.
+						
+						if (queryList == null) queryList = new ArrayList<>(); // Instantiate new list of queries if doesn't exist yet.
+						
+						if (queryId > 0 && wsName != null && query != null) { // If this record has the data required for a query, let's keep it.
+							Map<String, FieldConfiguration> fileConfigs = fieldConfigsJson != null ? JSONTools.FromJSON.fieldConfigs(new JSONObject(fieldConfigsJson)) : null;
+							queryList.add(new QueryHolder(queryId, wsName, query, fileConfigs)); // Add query data to list of queries.
+						}
+						DoubleBandFormatHolder dbFormat = DoubleBandFormatHolder.fromJSON(new JSONObject(dbFormatJson));
+						StyleHolder titleStyle = StyleHolder.fromJSON(new JSONObject(titleStyleJson));
+						StyleHolder subTotalStyle = StyleHolder.fromJSON(new JSONObject(subTotalJson));
+						
+						queries.put(new ReportKey(reportId, wbName, dbFormat, titleStyle, subTotalStyle), queryList); // Add report data to report/queries map.
+					}
+					dbMap.put(dbName, dbVal);
 				}
-				dbMap.put(dbName, dbVal); // Keep all this data in a local map to be put into a connection config when the connection ID changes.
-				i++;
-				System.out.println("CYCLE OVER i=" + i);
+				System.out.println("dbMap2: " + dbMap);
+				connMap.put(new ConnectionKey(id, host), dbMap);
 			}
-			if (host != null) {
-				ConnectionConfig cc = constructConnectionConfig(id, host, dbMap);
-				connConfigCache.put(host, cc);
-				dbMap.clear();
-				System.out.println("CREATED IT AFTER GANG");
+			
+			for (Entry<ConnectionKey, Map<String, DBValue>> connEntry : connMap.entrySet()) {
+				ConnectionKey key = connEntry.getKey();
+				Map<String, DBValue> dbVals = connEntry.getValue();
+				ConnectionConfig cc = constructConnectionConfig(key.getId(), key.getHostname(), dbVals);
+				connConfigCache.put(key.getHostname(), cc);
 			}
-			System.out.println("id: " + id);
 			rs.close();
 			ps.close();
 		} catch (SQLException e) {
@@ -925,6 +901,38 @@ public class DatabaseManager {
 			db.getConnection().close(); // Close down connection to local SQLite database.
 		} catch (SQLException e) {
 			e.printStackTrace();
+		}
+	}
+	
+	private static class ConnectionKey {
+		
+		@Getter private int id;
+		@Getter private String hostname;
+		
+		public ConnectionKey(int id, String hostname) {
+			this.id = id;
+			this.hostname = hostname;
+		}
+		
+		/**
+		 * Override hashcode and equals to enable desired behaviour when inserted into hash-based collections.
+		 * 
+		 * Similarity/equality of this object is dependent on the value of the id and reportName of the report. 
+		 */
+		
+		@Override
+		public int hashCode() {
+			return Objects.hash(id);
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (!(obj instanceof ConnectionKey) && !(obj instanceof Integer)) {
+				return false;
+			}
+			
+			int id = (obj instanceof ConnectionKey) ? ((ConnectionKey) obj).getId() : (Integer) obj;
+			return this.id == id;
 		}
 	}
 	

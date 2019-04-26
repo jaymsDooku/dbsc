@@ -18,16 +18,24 @@ public class NumberField extends TextField {
 		this.addEventHandler(KeyEvent.KEY_TYPED, portTxtType);
 	}
 	
-	public void setValue(int val) {
+	public void setValue(double val) {
+		setText(Double.toString(val));
+	}
+	
+	public void setIntValue(int val) {
 		setText(Integer.toString(val));
 	}
 
-	public int getValue() throws NumberFormatException {
+	public double getValue() throws NumberFormatException {
 		String text = this.getText();
 		if (Validation.sanityString(text)) {
 			return -1;
 		}
-		return Integer.parseInt(text);
+		return Double.parseDouble(text);
+	}
+	
+	public int getIntValue() {
+		return (int) getValue();
 	}
 	
 }

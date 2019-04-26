@@ -25,6 +25,7 @@ import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.DB;
 import io.jayms.dbsc.ui.QueryBuilderUI;
 import io.jayms.dbsc.util.GeneralUtils;
+import io.jayms.dbsc.util.Validation;
 import io.jayms.xlsx.db.Database;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -39,13 +40,18 @@ public class ExplainPlanButton extends Button {
 	private DBSCGraphicalUserInterface masterUI;
 	private QueryBuilderUI qbUI;
 	
+	/**
+	 * Instantiate explain button.
+	 * @param masterUI
+	 * @param qbUI
+	 */
 	public ExplainPlanButton(DBSCGraphicalUserInterface masterUI, QueryBuilderUI qbUI) {
 		super("Explain Plan");		
 		
 		this.masterUI = masterUI;
 		this.qbUI = qbUI;
 		this.setMinSize(Button.USE_PREF_SIZE, Button.USE_PREF_SIZE);
-		this.onMouseClickedProperty().set((e) -> {
+		this.onMouseClickedProperty().set((e) -> { // on clicking explain button, go through database types and call corresponding explain plan method.
 			String query = qbUI.getQueryBuilderContext().generateQuery(false);
 			
 			DB db = qbUI.getDb();
@@ -59,6 +65,7 @@ public class ExplainPlanButton extends Button {
 					explainPlanOracle(conn, query);
 					break;
 				case SQL_SERVER:
+					explainPlanSQLServer(conn, query);
 					break;
 				default:
 					break;
@@ -73,12 +80,6 @@ public class ExplainPlanButton extends Button {
 			stmt = conn.createStatement();
 			stmt.execute("EXPLAIN PLAN SET STATEMENT_ID = 'abc' FOR " + query);
 			ResultSet rs = stmt.executeQuery("SELECT dbms_xplan.build_plan_xml(statement_id => 'abc').getclobval() AS XPLAN FROM dual");
-			System.out.println("col count: " + rs.getMetaData().getColumnCount());
-			for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-				System.out.println("col name: " + rs.getMetaData().getColumnName(i));
-				System.out.println("col type: " + rs.getMetaData().getColumnType(i));
-				System.out.println("col type: " + rs.getMetaData().getColumnTypeName(i));
-			}
 			if (rs.next()) {
 				Clob xplanClob = rs.getClob("XPLAN");
 				String xplanXmlStr = GeneralUtils.clobToString(xplanClob);
@@ -150,7 +151,7 @@ public class ExplainPlanButton extends Button {
 	}
 	
 	private void explainPlanSQLite(Connection conn, String query) {
-		Statement stmt;
+		Statement stmt = null;
 		try {
 			stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery("EXPLAIN QUERY PLAN " + query);
@@ -163,7 +164,13 @@ public class ExplainPlanButton extends Button {
 			}
 			displaySQLiteOperations(sqliteOps);
 		} catch (SQLException e1) {
-			
+			e1.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null) stmt.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -182,11 +189,13 @@ public class ExplainPlanButton extends Button {
 		qbUI.updateExplainPlanTable(sqliteOpTable);
 	}
 	
+	/**
+	 * SQL Server doesn't have an obvious way of exposing their SQL plan execution through JDBC.
+	 * 
+	 * https://stackoverflow.com/questions/11100479/retrieve-sql-server-query-statistics-through-jdbc
+	 * In order to fetch a SQL Server query plan, it would require execution code on the database-side, which is out of the scope of the specification.
+	 */
 	private void explainPlanSQLServer(Connection conn, String query) {
-		
-	}
-	
-	private void displayPlanSQLServer(Set<SQLServerOperation> ssOps) {
-		
+		Validation.alert("SQL Server explain query plan is unsupported.");
 	}
 }

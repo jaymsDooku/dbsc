@@ -116,6 +116,7 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		HBox colWidthCtr = new HBox();
 		Label colWidthLbl = new Label("Column Width: ");
 		NumberField colWidthTxt = new NumberField();
+		colWidthTxt.setValue(11.52);
 		colWidthTxt.onKeyReleasedProperty().set((e) -> {
 			float columnWidth = Float.parseFloat(colWidthTxt.getText());
 			fieldConfig.setColumnWidth(columnWidth);
@@ -123,7 +124,7 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		});
 		colWidthCtr.getChildren().addAll(colWidthLbl, colWidthTxt);
 		queryOptionsDisplay.getChildren().clear();
-		queryOptionsDisplay.getChildren().addAll(fieldName, inlineCb, subTotalOnChangeCb, stfContainer, swapBandOnChangeCb);
+		queryOptionsDisplay.getChildren().addAll(fieldName, inlineCb, subTotalOnChangeCb, stfContainer, swapBandOnChangeCb, colWidthCtr);
 	}
 	
 	@Override

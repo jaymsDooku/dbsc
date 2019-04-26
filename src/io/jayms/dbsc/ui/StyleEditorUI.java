@@ -186,7 +186,7 @@ public class StyleEditorUI extends StandaloneUIModule {
 	
 	private void onEditStyle() {
 		String fontName = fontFamilyCmb.getSelectionModel().getSelectedItem();
-		int fontSize = fontSizeTxt.getValue();
+		int fontSize = fontSizeTxt.getIntValue();
 		
 		if (fontSize < 0) {
 			Validation.alert("Font size must be greater than 0.");

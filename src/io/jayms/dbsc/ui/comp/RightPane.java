@@ -47,7 +47,7 @@ public class RightPane extends AbstractUIModule {
 		File defFolder = new File(System.getProperty("user.dir"));
 		chosenFile = new File(defFolder, "test.xlsx");
 		
-		ssFileTxt = new TextField(chosenFile.getName());
+		ssFileTxt = new TextField(chosenFile.getName().replaceFirst("[.][^.]+$", "")); //only get the first part of the name without the 'xlsx' extension.
 		
 		ssFolderChooser = new FileChooser();
 		ssFolderChooser.setTitle("Choose Spreadsheet Destination");

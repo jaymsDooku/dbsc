@@ -357,7 +357,7 @@ public class RegisterDatabaseUI extends StandaloneUIModule {
 			int port = 0;
 			boolean invalidPort = false;
 			try {
-				port = portTxt.getValue();
+				port = portTxt.getIntValue();
 				
 				if (port < 0 || port > 65535) {
 					invalidPort = true;
