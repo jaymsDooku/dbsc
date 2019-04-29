@@ -5,14 +5,21 @@ import javafx.event.EventHandler;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyEvent;
 
+/**
+ * Textfield but only allows positive numbers to be entered into it. Used for all the numerical fields.
+ */
 public class NumberField extends TextField {
 
 	public NumberField() {
+		//listen for the key event
 		EventHandler<KeyEvent> portTxtType = (KeyEvent e) -> {
+			if (e.getCharacter().equals(".") && !getText().contains(".")) { // we can allow dots for decimal numbers but only if there isn't already a decimal point 
+				return;
+			}
 			try {
-				Integer.parseInt(e.getCharacter());
-			} catch (NumberFormatException ex) {
-				e.consume();
+				Integer.parseInt(e.getCharacter()); // try to parse an integer from this character
+			} catch (NumberFormatException ex) { // throws exception if isn't an integer
+				e.consume(); // consume event (don't allow key to be typed).
 			}
 		};
 		this.addEventHandler(KeyEvent.KEY_TYPED, portTxtType);

@@ -91,11 +91,9 @@ public class ReportUI extends StandaloneUIModule {
 		band1Ctr.setAlignment(Pos.CENTER_RIGHT);
 		band1Lbl = new Label("Band 1: ");
 		band1Btn = new Button("Edit Band 1");
-	
-		final StyleHolder finalTitleStyle = band1Style;
 		
 		band1Btn.setOnMouseClicked((e) -> {
-			StyleEditorUI seUI = new StyleEditorUI(masterUI, "Edit Band 1", true, finalTitleStyle, (s) -> { 
+			StyleEditorUI seUI = new StyleEditorUI(masterUI, "Edit Band 1", true, band1Style, (s) -> { 
 				this.band1Style = s;
 			});
 			seUI.init();
@@ -113,11 +111,9 @@ public class ReportUI extends StandaloneUIModule {
 		band2Ctr.setAlignment(Pos.CENTER_RIGHT);
 		band2Lbl = new Label("Band 2: ");
 		band2Btn = new Button("Edit Band 2");
-
-		final StyleHolder finalTitleStyle = band2Style;
 		
 		band2Btn.setOnMouseClicked((e) -> {
-			StyleEditorUI seUI = new StyleEditorUI(masterUI, "Edit Band 2", true, finalTitleStyle, (s) -> { 
+			StyleEditorUI seUI = new StyleEditorUI(masterUI, "Edit Band 2", true, band2Style, (s) -> { 
 				this.band2Style = s;
 			});
 			seUI.init();
@@ -136,10 +132,8 @@ public class ReportUI extends StandaloneUIModule {
 		tsStyleLbl = new Label("Title Style: ");
 		tsStyleBtn = new Button("Edit Title Style");
 		
-		final StyleHolder finalTitleStyle = titleStyle;
-		
 		tsStyleBtn.setOnMouseClicked((e) -> {
-			StyleEditorUI seUI = new StyleEditorUI(masterUI, "Edit Title Style", false, finalTitleStyle, (s) -> { 
+			StyleEditorUI seUI = new StyleEditorUI(masterUI, "Edit Title Style", false, titleStyle, (s) -> { 
 				this.titleStyle = s;
 			});
 			seUI.init();
@@ -158,10 +152,8 @@ public class ReportUI extends StandaloneUIModule {
 		stStyleLbl = new Label("Sub Total Style: ");
 		stStyleBtn = new Button("Edit Sub Total Style");
 		
-		final StyleHolder finalSubTotalStyle = subTotalStyle;
-		
 		stStyleBtn.setOnMouseClicked((e) -> {
-			StyleEditorUI seUI = new StyleEditorUI(masterUI, "Edit Sub Total Style", false, finalSubTotalStyle, (s) -> { 
+			StyleEditorUI seUI = new StyleEditorUI(masterUI, "Edit Sub Total Style", false, subTotalStyle, (s) -> { 
 				this.subTotalStyle = s;
 			});
 			seUI.init();
@@ -189,11 +181,10 @@ public class ReportUI extends StandaloneUIModule {
 		this.selectedDB = report == null ? db : report.getDb();
 		this.selectedReport = report;
 		
-		FontHolder font = new FontHolder("Arial", 12, false, StyleTable.COLORS[0]);
-		this.band1Style = selectedReport != null ? selectedReport.getDoubleBandFormat().getStyle1() : new StyleHolder(font, StyleTable.COLORS[6]);
-		this.band2Style = selectedReport != null ? selectedReport.getDoubleBandFormat().getStyle2() : new StyleHolder(font, StyleTable.COLORS[7]);
+		this.band1Style = selectedReport != null ? selectedReport.getDoubleBandFormat().getStyle1() : DBSCGraphicalUserInterface.getDefaultDoubleBandFormat().getStyle1();
+		this.band2Style = selectedReport != null ? selectedReport.getDoubleBandFormat().getStyle2() : DBSCGraphicalUserInterface.getDefaultDoubleBandFormat().getStyle2();
 		this.titleStyle = selectedReport != null ? selectedReport.getTitleStyle() : DBSCGraphicalUserInterface.getDefaultTitleStyle();
-		this.subTotalStyle = selectedReport != null ? selectedReport.getSubTotalStyle() : new StyleHolder(font, StyleTable.COLORS[9]);
+		this.subTotalStyle = selectedReport != null ? selectedReport.getSubTotalStyle() : DBSCGraphicalUserInterface.getDefaultSubTotalStyle();
 	}
 	
 	@Override

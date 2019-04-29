@@ -29,6 +29,10 @@ public class FontHolder {
 		FontManager fm = wb.getFontManager();
 		return fm.getFont(fm.createFont(familyName, size, bold, color));
 	}
+	
+	public FontHolder copy() {
+		return new FontHolder(familyName, size, bold, color);
+	}
 
 	public static JSONObject toJSON(FontHolder font) {
 		JSONObject obj = new JSONObject();

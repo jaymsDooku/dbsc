@@ -4,7 +4,6 @@ import java.io.File;
 
 import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.ui.AbstractUIModule;
-import javafx.beans.binding.Bindings;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
@@ -13,8 +12,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
-import javafx.stage.FileChooser.ExtensionFilter;
 import lombok.Getter;
 
 public class RightPane extends AbstractUIModule {
@@ -24,7 +23,7 @@ public class RightPane extends AbstractUIModule {
 	private HBox topPane;
 	private TextField pathDisplay;
 	private Button ssFolderChooseBtn;
-	private FileChooser ssFolderChooser;
+	private DirectoryChooser ssFolderChooser;
 	private TextField ssFileTxt;
 	
 	@Getter private File chosenFile;
@@ -49,10 +48,9 @@ public class RightPane extends AbstractUIModule {
 		
 		ssFileTxt = new TextField(chosenFile.getName().replaceFirst("[.][^.]+$", "")); //only get the first part of the name without the 'xlsx' extension.
 		
-		ssFolderChooser = new FileChooser();
+		ssFolderChooser = new DirectoryChooser();
 		ssFolderChooser.setTitle("Choose Spreadsheet Destination");
 		ssFolderChooser.setInitialDirectory(defFolder);
-		ssFolderChooser.getExtensionFilters().add(new ExtensionFilter("Spreadsheet Files", ".xlsx"));
 		
 		pathDisplay = new TextField();
 		pathDisplay.textProperty().bind(ssFolderChooser.initialDirectoryProperty().asString());
@@ -62,7 +60,8 @@ public class RightPane extends AbstractUIModule {
 		ssFolderChooseBtn = new Button("Browse...");
 		
 		ssFolderChooseBtn.setOnMouseClicked((e) -> {
-			File folder = ssFolderChooser.showOpenDialog(masterUI.getStage());
+			File folder = ssFolderChooser.showDialog(masterUI.getStage());
+			ssFolderChooser.setInitialDirectory(folder);
 			String fileName = ssFileTxt.getText();
 			String fileNameExt = fileName + ".xlsx";
 			chosenFile = new File(folder, fileNameExt);

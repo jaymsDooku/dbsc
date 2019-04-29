@@ -24,6 +24,10 @@ public class StyleHolder {
 		return new Style(font.toFont(wb), new Fill(fillColor));
 	}
 	
+	public StyleHolder copy() {
+		return new StyleHolder(font.copy(), fillColor);
+	}
+	
 	public static JSONObject toJSON(StyleHolder style) {
 		JSONObject obj = new JSONObject();
 		obj.put("font", FontHolder.toJSON(style.font));

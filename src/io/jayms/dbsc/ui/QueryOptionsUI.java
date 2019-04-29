@@ -43,9 +43,6 @@ public class QueryOptionsUI extends StandaloneUIModule {
 	@Getter private DatabaseColumn[] fields;
 	@Getter private Map<String, FieldConfiguration> fieldConfigs;
 	
-	@Getter private HBox queryOptionsButtonBar;
-	@Getter private Button applyOptionsBtn;
-	
 	@Getter private Query query;
 	
 	public QueryOptionsUI(DBSCGraphicalUserInterface masterUI, Query query, DatabaseColumn[] fields) {
@@ -54,20 +51,9 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		this.fields = fields;
 	}
 	
-	private Multimap<String, String> getTableToFields() {
-		Multimap<String, String> result = HashMultimap.create();
-		
-		Arrays.stream(fields).forEach(dc -> {
-			result.put(dc.getTableName(), dc.getName());
-		});
-		
-		return result;
-	}
-	
 	private void saveFieldConfig(String selected, FieldConfiguration fieldConfig) {
 		fieldConfigs.put(selected, fieldConfig);
 		query.setFieldConfigs(fieldConfigs);
-		System.out.println("hello fieldConfig: " + fieldConfig);
 	}
 	
 	private void displayOptionsOfField(String selected) {
@@ -90,7 +76,6 @@ public class QueryOptionsUI extends StandaloneUIModule {
 			SubTotalFunction subTotalFunction = SubTotalFunction.valueOf(n);
 			fieldConfig.setSubTotalFunction(subTotalFunction);
 			saveFieldConfig(selected, fieldConfig);
-			System.out.println("n word");
 		});
 		Arrays.stream(SubTotalFunction.values()).forEach(v -> {
 			subTotalFunctionCmb.getItems().add(v.toString());
@@ -116,11 +101,12 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		HBox colWidthCtr = new HBox();
 		Label colWidthLbl = new Label("Column Width: ");
 		NumberField colWidthTxt = new NumberField();
-		colWidthTxt.setValue(11.52);
-		colWidthTxt.onKeyReleasedProperty().set((e) -> {
-			float columnWidth = Float.parseFloat(colWidthTxt.getText());
-			fieldConfig.setColumnWidth(columnWidth);
-			saveFieldConfig(selected, fieldConfig);
+		colWidthTxt.setValue(fieldConfig.getColumnWidth());
+		colWidthTxt.onKeyReleasedProperty().set((e) -> { // everytime we press a key
+			float columnWidth = Float.parseFloat(colWidthTxt.getText()); // parse it as a float
+			fieldConfig.setColumnWidth(columnWidth); // update column width
+			saveFieldConfig(selected, fieldConfig); // update 
+			System.out.println("hello? " + columnWidth);
 		});
 		colWidthCtr.getChildren().addAll(colWidthLbl, colWidthTxt);
 		queryOptionsDisplay.getChildren().clear();
@@ -142,16 +128,12 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		
 		fieldsView = new ListView<>();
 		
-		Multimap<String, String> tableToFields = getTableToFields();
-		for (String table : tableToFields.keySet()) {
-			boolean empty = (table == null || table.isEmpty());
-			
-			fieldsView.getItems().add("|" + (empty ? "No Table Name" : table) + "|");
-			Collection<String> fields = tableToFields.get(table);
-			fields.stream().forEach(f -> {
-				fieldsView.getItems().add(f);
-			});
-		}
+		// iterate over all the fields, and them to the list view.
+		Arrays.stream(fields).forEach(dc -> {
+			if (!fieldsView.getItems().contains(dc.getName())) {
+				fieldsView.getItems().add(dc.getName());
+			}
+		});
 		
 		queryOptionsDisplay = new VBox(10);
 		queryOptionsDisplay.setPadding(new Insets(10));
@@ -166,16 +148,8 @@ public class QueryOptionsUI extends StandaloneUIModule {
 		
 		queryOptionsContainer.getItems().addAll(fieldsView, queryOptionsDisplay);
 		
-		queryOptionsButtonBar = new HBox();
-		applyOptionsBtn = new Button("Apply Options");
-		applyOptionsBtn.onMouseClickedProperty().set((e) -> {
-			query.setFieldConfigs(fieldConfigs);
-			close();
-		});
-		
 		queryOptionsRootPane = new BorderPane();
 		queryOptionsRootPane.setCenter(queryOptionsContainer);
-		queryOptionsRootPane.setBottom(queryOptionsButtonBar);
 		queryOptionsScene = new Scene(queryOptionsRootPane, 600, 400);
 		uiStage.setScene(queryOptionsScene);
 	}

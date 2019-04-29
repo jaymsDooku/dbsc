@@ -4,6 +4,7 @@ import io.jayms.dbsc.DBSCGraphicalUserInterface;
 import io.jayms.dbsc.model.Report;
 import io.jayms.dbsc.ui.NewQueryUI;
 import io.jayms.dbsc.ui.ReportUI;
+import io.jayms.dbsc.ui.comp.ConnectionTreeView;
 import io.jayms.dbsc.util.ComponentFactory;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -47,6 +48,9 @@ public class ReportTreeItem extends DBSCTreeItem {
 		MenuItem deleteConn = new MenuItem("Delete Report");
 		deleteConn.setOnAction(e -> {
 			masterUI.getDatabaseManager().deleteReport(report);
+			
+			ConnectionTreeView connView = masterUI.getLeftPane().getConnections();
+			connView.removeTreeItem(this);
 		});
 		reportCM.getItems().addAll(newReport, settings, deleteConn);
 		return reportCM;

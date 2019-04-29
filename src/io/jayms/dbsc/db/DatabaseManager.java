@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -820,7 +821,12 @@ public class DatabaseManager {
 			ps.setInt(1, cc.getId());
 			ps.executeUpdate(); // Execute
 			
-			cc.getDbs().stream().forEach(db -> deleteDB(db)); // Invoke delete on all databases contained within this connection config.
+			Iterator<DB> dbIt = cc.getDbs().iterator();
+			while (dbIt.hasNext()) { // Invoke delete on all reports contained within this connection config, but use iterator to avoid ConcurrentModificationException when removing from conn's list.
+				DB db = dbIt.next();
+				deleteDB(db);
+				dbIt.remove();
+			}
 			return true;
 		} catch (SQLException e) {
 			return false;
@@ -841,8 +847,12 @@ public class DatabaseManager {
 			ps.setInt(1, db.getId());
 			ps.executeUpdate(); // Execute
 			
-			db.getReports().stream().forEach(report -> deleteReport(report)); // Invoke delete on all reports contained within this connection config.
-			db.getConnConfig().getDbs().remove(db); // Ensure that the connection config doesn't think this database exists anymore.
+			Iterator<Report> repIt = db.getReports().iterator();
+			while (repIt.hasNext()) { // Invoke delete on all reports contained within this connection config, but use iterator to avoid ConcurrentModificationException when removing from db's list.
+				Report report = repIt.next();
+				deleteReport(report);
+				repIt.remove();
+			}
 			return true;
 		} catch (SQLException e) {
 			return false;
@@ -863,8 +873,12 @@ public class DatabaseManager {
 			ps.setInt(1, report.getId());
 			ps.executeUpdate(); // Execute
 			
-			report.getQueries().stream().forEach(query -> deleteQuery(query)); // Invoke delete on all queries contained within this connection config.
-			report.getDb().getReports().remove(report); // Ensure that the database doesn't think this report exists anymore.
+			Iterator<Query> queryIt = report.getQueries().iterator();
+			while (queryIt.hasNext()) { // Invoke delete on queries reports contained within this report, but use iterator to avoid ConcurrentModificationException when removing from report's list.
+				Query query = queryIt.next();
+				deleteQuery(query);
+				queryIt.remove();
+			}
 			return true;
 		} catch (SQLException e) {
 			return false;

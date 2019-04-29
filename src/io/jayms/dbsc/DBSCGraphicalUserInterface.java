@@ -112,24 +112,27 @@ public class DBSCGraphicalUserInterface extends Application {
 	/**
 	 * Default double band format and title style.
 	 */
-	@Getter private static DoubleBandFormatHolder defaultDoubleBandFormat;
-	@Getter private static StyleHolder defaultTitleStyle;
-	@Getter private static StyleHolder defaultSubTotalStyle;
 	
-	/**
-	 * Static initialization of some global defaults. 
-	 */
-	static {
-		FontHolder defaultFont = new FontHolder("Arial", 12, true, StyleTable.COLORS[0]);
-		defaultDoubleBandFormat = new DoubleBandFormatHolder(new StyleHolder(defaultFont, StyleTable.COLORS[7]),
-				new StyleHolder(defaultFont, StyleTable.COLORS[8]));
-		
-		java.awt.Color tc = new java.awt.Color(102, 153, 153, 255);
-		java.awt.Color stc = new java.awt.Color(244, 66, 66, 255);
+	public static DoubleBandFormatHolder getDefaultDoubleBandFormat() {
 		FontHolder tf = new FontHolder("Arial", 12, true, new java.awt.Color(0, 0, 0, 255));
-		defaultTitleStyle = new StyleHolder(tf, tc);
-		defaultSubTotalStyle = new StyleHolder(tf, stc);
+		DoubleBandFormatHolder defaultDoubleBandFormat = new DoubleBandFormatHolder(new StyleHolder(tf, StyleTable.COLORS[7]),
+				new StyleHolder(tf, StyleTable.COLORS[8]));
+		return defaultDoubleBandFormat;
 	}
+	
+	public static StyleHolder getDefaultTitleStyle() {
+		FontHolder tf = new FontHolder("Arial", 12, true, new java.awt.Color(0, 0, 0, 255));
+		java.awt.Color tc = new java.awt.Color(102, 153, 153, 255);
+		StyleHolder defaultTitleStyle = new StyleHolder(tf, tc);
+		return defaultTitleStyle;
+	}
+	
+	public static StyleHolder getDefaultSubTotalStyle() {
+		FontHolder tf = new FontHolder("Arial", 12, true, new java.awt.Color(0, 0, 0, 255));
+		java.awt.Color stc = new java.awt.Color(244, 66, 66, 255);
+		StyleHolder defaultSubTotalStyle = new StyleHolder(tf, stc);
+		return defaultSubTotalStyle;
+	}		
 	
 	/**
 	 * Initialize the JavaFX application.

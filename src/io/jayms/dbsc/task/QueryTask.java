@@ -42,24 +42,29 @@ public class QueryTask extends Task<QueryTaskResult> {
 		Database connDB = dbManager.getDatabaseConnection(db);
 		DatabaseConverter converter = new DatabaseConverter(connDB);
 		
+		if (this.isCancelled()) {
+			return new QueryTaskResult(null, null);
+		}
+		
 		masterUI.getRightPane().getActionBar().updateStatus("Running Query Task " + taskId +  " - Constructing Worksheet from Query");
 		String worksheetName = query.getWorksheetName();
-		System.out.println("1");
-		System.out.println("report: " + report);
 		Workbook wb = new Workbook(report.getWorkbookName());
-		System.out.println("title style: " + report.getTitleStyle());
-		System.out.println("title style2: " + report.getDoubleBandFormat());
 		wb.setTitleStyle(report.getTitleStyle().toStyle(wb));
 		wb.setSubTotalStyle(report.getTitleStyle().toStyle(wb));
 		wb.setColourFormat(report.getDoubleBandFormat().toDoubleBandFormat(wb));
-		System.out.println("about to query");
 		Worksheet worksheet = converter.addQueryToWorksheet(wb, worksheetName, query.getQuery());
 			
+		if (this.isCancelled()) {
+			return new QueryTaskResult(null, null);
+		}
+		
 		masterUI.getRightPane().getActionBar().updateStatus("Running Query Task " + taskId +  " - Writing to file");
 		File file = masterUI.getRightPane().getChosenFile();
 		
 		DatabaseColumn[] fields = DatabaseManager.getTableFields(masterUI, query);
+		System.out.println("fieldConfigs: " + query.getFieldConfigs());
 		Map<String, FieldConfiguration> fieldConfigs = FieldConfiguration.getDefaultFieldConfigs(fields, query.getFieldConfigs());
+		System.out.println("fieldConfigs2: " + fieldConfigs);
 		query.setFieldConfigs(fieldConfigs);
 		
 		Set<WorksheetDescriptor> wsDescs = query.getReport().getWorksheetDescriptors();

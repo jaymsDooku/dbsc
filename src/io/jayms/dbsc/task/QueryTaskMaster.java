@@ -21,7 +21,7 @@ public class QueryTaskMaster {
 	
 	public QueryTaskMaster(DBSCGraphicalUserInterface masterUI) {
 		this.masterUI = masterUI;
-		this.executorService = Executors.newSingleThreadExecutor();
+		this.executorService = Executors.newFixedThreadPool(3);
 	}
 	
 	public void updateTaskStatus() {
@@ -45,6 +45,7 @@ public class QueryTaskMaster {
 	}
 	
 	public void stopQuery(int taskId) {
+		System.out.println("stopping query...");
 		if (!queryTasks.containsKey(taskId)) {
 			return;
 		}

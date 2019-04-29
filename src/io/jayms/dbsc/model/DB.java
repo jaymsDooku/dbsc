@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 
+ * Represents database item.
  */
 public class DB {
 	
