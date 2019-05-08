@@ -47,8 +47,6 @@ public class QueryTextEditor extends CodeArea {
 	
 	public void initCSS(Scene scene) {
 		File file = new File("resources/css/keywords.css");
-		System.out.println("css file: " + file.getAbsolutePath());
-		System.out.println("css file exists: " + file.exists());
 		
 		ObservableList<String> stylesheets = scene.getStylesheets();
 		try {
@@ -56,7 +54,6 @@ public class QueryTextEditor extends CodeArea {
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		}
-		System.out.println("stylesheets: " + stylesheets);
 	}
 	
 	private static StyleSpans<Collection<String>> computeHighlighting(String text) {

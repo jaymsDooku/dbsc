@@ -92,14 +92,20 @@ public class DatabaseUI extends StandaloneUIModule {
 		
 		dbTypeLbl = new Label("DB Type: ");
 		
-		dbTypeCmb = new ComboBox<>();
+		dbTypeCmb = new ComboBox<>(); 
+		/* 
+		 * add a change listener to the selectedItem property of the database type ComboBox;
+		 * this will invoke the method in the lambda expression below when the value held in the ComboBox changes.
+		 */ 
 		dbTypeCmb.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
 			DBType dbType = DBType.valueOf(newValue.toUpperCase());
 			
+			// if our new database type is the same as the old one; dont do anything
 			if (selectedDBType == dbType) return;
 			
 			ObservableList<Node> children = newDBRoot.getChildren();
 			if (dbType == DBType.SQLITE) {
+				// if SQLite, remove all the non-SQLite-relevant fields and add SQLite-relevant fields.
 				if (children.contains(dbServerNameCtr)) {
 					children.remove(dbServerNameCtr);
 				}
@@ -358,7 +364,7 @@ public class DatabaseUI extends StandaloneUIModule {
 		
 		DBType dbType = DBType.valueOf(dbTypeCmb.getSelectionModel().getSelectedItem().toUpperCase());
 		
-		if (dbType == null) {
+		if (dbType == null) { // this shouldn't ever be the case as the ComboBox has these limits built-in.
 			Validation.alert("You need to choose a database type!");
 			return;
 		}

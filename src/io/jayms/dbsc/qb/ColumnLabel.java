@@ -1,14 +1,10 @@
 package io.jayms.dbsc.qb;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 import com.google.common.collect.Multimap;
 
 import io.jayms.dbsc.model.Column;
 import io.jayms.dbsc.model.Table;
 import io.jayms.dbsc.ui.QueryBuilderUI;
-import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Background;
